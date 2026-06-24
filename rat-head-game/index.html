@@ -1,0 +1,1655 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>指鼠为鸭 - 互动故事</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 50%, #2c3e50 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            transition: background 0.5s ease;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body.student-mood {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        }
+
+        body.official-mood {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 50%, #2c3e50 100%);
+        }
+
+        body.boss-mood {
+            background: linear-gradient(135deg, #3d2914 0%, #5d4037 50%, #4e342e 100%);
+        }
+
+        body.pressure-mood {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
+        }
+
+        body.truth-mood {
+            background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
+        }
+
+        .box {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 35px 30px;
+            width: 100%;
+            max-width: 520px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            position: relative;
+            z-index: 10;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+
+        .title {
+            font-size: 22px;
+            font-weight: bold;
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            font-size: 13px;
+            text-align: center;
+            color: #888;
+            margin-bottom: 20px;
+        }
+
+        .perspective-label {
+            font-size: 12px;
+            color: #e74c3c;
+            text-align: center;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+
+        .progress {
+            font-size: 13px;
+            color: #666;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .question {
+            font-size: 16px;
+            color: #333;
+            line-height: 1.7;
+            margin-bottom: 20px;
+            text-align: left;
+            min-height: 55px;
+            display: flex;
+            align-items: center;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .option {
+            padding: 12px 16px;
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            color: #444;
+            text-align: left;
+        }
+
+        .option:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+            transform: translateY(-2px);
+        }
+
+        .option.selected {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            border-color: #3498db;
+            color: #fff;
+        }
+
+        .option.locked {
+            opacity: 0.6;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .prev-btn {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        .prev-btn:hover:not(:disabled) {
+            background: #e0e0e0;
+        }
+
+        .next-btn {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: #fff;
+        }
+
+        .next-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(52, 152, 219, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* 视角选择界面 */
+        .select-screen {
+            text-align: center;
+        }
+
+        .select-title {
+            font-size: 28px;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .select-subtitle {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 40px;
+        }
+
+        .perspective-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .perspective-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+            border: 3px solid transparent;
+        }
+
+        .perspective-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .perspective-card.student:hover {
+            border-color: #3498db;
+        }
+
+        .perspective-card.official:hover {
+            border-color: #e74c3c;
+        }
+
+        .perspective-card.boss:hover {
+            border-color: #f39c12;
+        }
+
+        .card-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+
+        .card-desc {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .card-tag {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            margin-top: 10px;
+            color: #fff;
+        }
+
+        .tag-student { background: #3498db; }
+        .tag-official { background: #e74c3c; }
+        .tag-boss { background: #f39c12; }
+
+        /* 消息轰炸效果 */
+        .notification {
+            position: fixed;
+            right: -350px;
+            background: #fff;
+            border-radius: 10px;
+            padding: 12px 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            max-width: 300px;
+            transition: right 0.3s ease;
+            font-size: 13px;
+        }
+
+        .notification.show {
+            right: 20px;
+        }
+
+        .notification .notif-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 3px;
+            font-size: 12px;
+        }
+
+        .notification .notif-content {
+            color: #666;
+        }
+
+        /* 压迫感效果 */
+        .pressure-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 50;
+            box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .pressure-overlay.show {
+            opacity: 1;
+        }
+
+        /* 弹幕效果 */
+        .danmaku {
+            position: fixed;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            pointer-events: none;
+            z-index: 50;
+            white-space: nowrap;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        /* 真相大白效果 */
+        .truth-light {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(46, 204, 113, 0.3) 0%, transparent 70%);
+            z-index: 50;
+            pointer-events: none;
+            animation: truthGlow 2s ease forwards;
+        }
+
+        @keyframes truthGlow {
+            0% { opacity: 0; transform: scale(0.5); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        /* 画面晃动效果 */
+        .shake {
+            animation: shake 0.5s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        /* 结局界面 */
+        .ending-screen {
+            text-align: center;
+        }
+
+        .ending-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .ending-good { color: #27ae60; }
+        .ending-bad { color: #e74c3c; }
+        .ending-normal { color: #f39c12; }
+        .ending-secret { color: #9b59b6; }
+
+        .ending-content {
+            font-size: 14px;
+            color: #555;
+            line-height: 1.8;
+            text-align: left;
+            margin-bottom: 25px;
+        }
+
+        .ending-image {
+            width: 100%;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .restart-btn {
+            padding: 12px 35px;
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: #fff;
+            border: none;
+            border-radius: 25px;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+
+        .restart-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(52, 152, 219, 0.4);
+        }
+
+        .back-btn {
+            background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+        }
+
+        .back-btn:hover {
+            box-shadow: 0 5px 20px rgba(149, 165, 166, 0.4);
+        }
+
+        /* 新闻弹窗 */
+        .news-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            background: #fff;
+            border-radius: 10px;
+            padding: 20px;
+            z-index: 9999;
+            max-width: 400px;
+            width: 90%;
+            opacity: 0;
+            transition: all 0.5s ease;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .news-popup.show {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .news-popup img {
+            width: 100%;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .news-popup .news-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .news-popup .news-close {
+            text-align: center;
+            color: #999;
+            font-size: 12px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        /* 数值条 */
+        .stats-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            font-size: 11px;
+        }
+
+        .stat-item {
+            flex: 1;
+        }
+
+        .stat-label {
+            color: #888;
+            margin-bottom: 3px;
+        }
+
+        .stat-bar {
+            height: 4px;
+            background: #eee;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .stat-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.5s ease;
+        }
+
+        .fill-truth { background: #27ae60; }
+        .fill-pressure { background: #e74c3c; }
+        .fill-public { background: #3498db; }
+
+        /* 玩前须知 */
+        .notice-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 10001;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+        }
+
+        .notice-box {
+            background: #fff;
+            padding: 35px 30px;
+            border-radius: 15px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .notice-title {
+            font-size: 22px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .notice-content {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.8;
+            margin-bottom: 25px;
+            text-align: left;
+        }
+
+        .notice-btn {
+            padding: 12px 40px;
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: #fff;
+            border: none;
+            border-radius: 25px;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .notice-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(52, 152, 219, 0.4);
+        }
+
+        .disclaimer {
+            font-size: 11px;
+            color: #999;
+            margin-top: 15px;
+            line-height: 1.5;
+        }
+
+        /* 隐藏 */
+        .hidden {
+            display: none !important;
+        }
+
+        /* 响应式 */
+        @media (max-width: 480px) {
+            .box {
+                padding: 25px 20px;
+            }
+            .title {
+                font-size: 18px;
+            }
+            .question {
+                font-size: 15px;
+            }
+            .option {
+                font-size: 13px;
+                padding: 10px 14px;
+            }
+            .select-title {
+                font-size: 22px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 玩前须知 -->
+    <div class="notice-modal" id="noticeModal">
+        <div class="notice-box">
+            <div class="notice-title">📰 指鼠为鸭</div>
+            <div class="notice-content">
+                本游戏根据真实事件改编<br><br>
+                你将从不同视角经历这场舆论风波<br>
+                你的每一个选择，都会影响故事的走向<br><br>
+                三个视角，三种人生，三种抉择<br>
+                你会做出怎样的选择？<br><br>
+                <span style="color: #e74c3c; font-size: 12px;">⚠️ 建议打开声音获得完整体验</span>
+            </div>
+            <button class="notice-btn" id="noticeBtn">开始游戏</button>
+            <div class="disclaimer">
+                本游戏为虚构创作，部分情节基于真实事件改编<br>
+                仅作娱乐用途，不代表任何官方立场
+            </div>
+        </div>
+    </div>
+
+    <!-- 视角选择界面 -->
+    <div class="select-screen hidden" id="selectScreen">
+        <div class="select-title">🎭 选择你的视角</div>
+        <div class="select-subtitle">三个视角，三种人生，同一场风波</div>
+        <div class="perspective-cards">
+            <div class="perspective-card student" onclick="startGame('student')">
+                <div class="card-icon">🎓</div>
+                <div class="card-title">普通学生</div>
+                <div class="card-desc">
+                    你只是一个普通的大学生，在食堂吃出了疑似鼠头的异物...<br>
+                    面对学校的压力，你会选择坚持真相还是妥协？
+                </div>
+                <span class="card-tag tag-student">难度：★★☆</span>
+            </div>
+            <div class="perspective-card official" onclick="startGame('official')">
+                <div class="card-icon">👔</div>
+                <div class="card-title">市监局江局长</div>
+                <div class="card-desc">
+                    你是高新区市监局分局局长，接到了学校的报告...<br>
+                    面对上级压力和职业操守，你会如何抉择？
+                </div>
+                <span class="card-tag tag-official">难度：★★★</span>
+            </div>
+            <div class="perspective-card boss" onclick="startGame('boss')">
+                <div class="card-icon">🍳</div>
+                <div class="card-title">食堂档口老板</div>
+                <div class="card-desc">
+                    你是食堂卤味档口的承包商，小本生意不容易...<br>
+                    出了这样的事，你会选择坦白还是掩盖？
+                </div>
+                <span class="card-tag tag-boss">难度：★★☆</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主问卷盒子 -->
+    <div class="box hidden" id="mainBox">
+        <div class="perspective-label" id="perspectiveLabel"></div>
+        <div class="title">指鼠为鸭</div>
+        <div class="subtitle">互动故事</div>
+        <div class="progress" id="progress">第 1 题</div>
+        
+        <div class="stats-bar" id="statsBar">
+            <div class="stat-item">
+                <div class="stat-label">真相值</div>
+                <div class="stat-bar">
+                    <div class="stat-fill fill-truth" id="truthFill" style="width: 50%;"></div>
+                </div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">压力值</div>
+                <div class="stat-bar">
+                    <div class="stat-fill fill-pressure" id="pressureFill" style="width: 20%;"></div>
+                </div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">舆论值</div>
+                <div class="stat-bar">
+                    <div class="stat-fill fill-public" id="publicFill" style="width: 10%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="question" id="question"></div>
+        <div class="options" id="options"></div>
+        <div class="btn-group">
+            <button class="btn prev-btn" id="prevBtn" disabled>上一题</button>
+            <button class="btn next-btn" id="nextBtn">下一题</button>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 游戏数据 ====================
+
+        // 学生视角
+        const studentData = {
+            name: '普通学生',
+            label: '🎓 学生视角',
+            bgClass: 'student-mood',
+            questions: [
+                {
+                    q: '6月1日，中午。你像往常一样来到学校食堂，点了一份绝味鸭脖。吃着吃着，你感觉嘴里有个东西不太对劲...',
+                    opt: ["吐出来看看是什么", "继续嚼，可能是鸭脖的骨头", "直接吐掉，有点恶心", "找食堂工作人员问问"]
+                },
+                {
+                    q: '你吐出来一看，顿时头皮发麻——这东西有牙齿、有胡须，分明就是个老鼠头！你第一反应是？',
+                    opt: ["拍视频拍照片，留好证据", "当场呕吐，太恶心了", "直接找食堂档口理论", "拍下来发朋友圈吐槽"]
+                },
+                {
+                    q: '你把视频发到了网上，没想到几个小时就有了几万播放。评论区吵翻了天，有人说就是鼠头，有人说你造谣。这时候你会？',
+                    opt: ["继续发更多证据，坚持自己看到的", "删掉视频，多一事不如少一事", "跟网友对线，据理力争", "不回应，看看情况再说"]
+                },
+                {
+                    q: '第二天，辅导员突然找你谈话，说学校领导很重视这件事，希望你"配合一下"。你感觉？',
+                    opt: ["有点紧张，但还是坚持自己的说法", "有点害怕，不知道该怎么办", "无所谓，反正我说的是实话", "开始考虑要不要改口"]
+                },
+                {
+                    q: '学校领导亲自找你谈话了。他们说这就是鸭脖，让你发个声明澄清一下，还暗示你"懂事的话有好处"。你会？',
+                    opt: ["坚决不同意，就是鼠头", "有点动摇，但还是不想说谎", "同意了，反正胳膊拧不过大腿", "要求他们给保证，不然后果自负"]
+                },
+                {
+                    q: '学校给你开出了条件：保研资格 + 奖学金 + 不记入档案。只要你发个视频说"确实是鸭脖，我看错了"。你会？',
+                    opt: ["断然拒绝，真相比什么都重要", "很心动，但良心上过不去", "犹豫，不知道该怎么选", "同意了，这机会太难得了"]
+                },
+                {
+                    q: '6月3日，学校官方微博发布了情况通报，说"经当事人确认，异物为鸭脖"。你的视频也被限流了。这时候你会？',
+                    opt: ["站出来反驳，说自己是被迫的", "沉默，反正说了也没人信", "偷偷把更多证据发给媒体", "后悔当初没有坚持"]
+                },
+                {
+                    q: '事情越闹越大，上了热搜第一。全网都在讨论"指鼠为鸭"，各种段子表情包满天飞。你会？',
+                    opt: ["看到希望，觉得真相快大白了", "压力更大了，学校找你更频繁了", "有点害怕，怕被学校报复", "无所谓，反正我只是个小透明"]
+                },
+                {
+                    q: '6月10日，省里成立了联合调查组，有教育厅、公安厅、市监局的人。他们说要找你了解情况。你会？',
+                    opt: ["如实说出所有情况，包括学校施压的事", "还是按之前的说法，不敢改口", "只说自己看到的，不说学校的事", "要求保护，不然不敢说"]
+                },
+                {
+                    q: '调查组找你谈话了，他们态度很诚恳，说一定会查明真相。你选择了如实相告。说完之后，你感觉？',
+                    opt: ["松了一口气，终于说出来了", "还是有点担心，怕被报复", "相信调查组，等待结果", "有点后悔，不该说那么多"]
+                },
+                {
+                    q: '6月17日，联合调查组发布通报：判定异物为老鼠类啮齿动物的头部。真相大白了！你的第一反应是？',
+                    opt: ["哭了，终于沉冤得雪", "很平静，早就知道会这样", "有点后怕，还好自己坚持了", "开始担心学校会不会报复"]
+                },
+                {
+                    q: '事情结束后，你回到了正常的校园生活。但你知道，有些东西已经不一样了。这个结局是...',
+                    opt: ["查看你的结局"]
+                }
+            ],
+            endings: {
+                good: {
+                    title: '🏆 好结局：吹哨人',
+                    type: 'ending-good',
+                    content: `
+                        你选择了坚持真相，哪怕面对压力和诱惑。<br><br>
+                        真相大白后，你成了网友口中的"吹哨人"。<br>
+                        很多人给你发私信，说你很勇敢。<br><br>
+                        学校虽然没有明着给你穿小鞋，但你能感觉到一些微妙的变化。<br>
+                        辅导员对你的态度客气了很多，但也疏远了很多。<br><br>
+                        你有时候会想，如果当初选择了保研，现在会不会更好？<br>
+                        但每次看到那个"指鼠为鸭"的梗，你都会告诉自己：<br>
+                        我做了正确的选择。<br><br>
+                        <span style="color: #27ae60;">✨ 有些东西，比保研和奖学金更重要</span>
+                    `,
+                    image: 'https://aka.doubaocdn.com/s/VaUG1wewD2'
+                },
+                normal: {
+                    title: '😔 普通结局：沉默的大多数',
+                    type: 'ending-normal',
+                    content: `
+                        你最终还是选择了妥协。<br><br>
+                        学校兑现了承诺，你拿到了奖学金，保研也有了眉目。<br>
+                        但每次在食堂吃饭，你都会想起那个老鼠头。<br><br>
+                        网上"指鼠为鸭"的梗越火，你心里就越不是滋味。<br>
+                        有时候你会刷到相关的视频，然后快速划走。<br><br>
+                        真相大白那天，你一个人在宿舍坐了很久。<br>
+                        你不知道自己是该庆幸，还是该后悔。<br><br>
+                        你得到了很多，但也失去了一些东西。<br>
+                        那些失去的东西，可能再也找不回来了。<br><br>
+                        <span style="color: #f39c12;">💭 我们最终都会变成自己曾经讨厌的人吗？</span>
+                    `,
+                    image: 'https://aka.doubaocdn.com/s/AC0a1wewD2'
+                },
+                bad: {
+                    title: '💔 坏结局：里外不是人',
+                    type: 'ending-bad',
+                    content: `
+                        你不仅改口说是鸭脖，还主动发视频"道歉"，说自己"看错了"。<br><br>
+                        你以为这样就能息事宁人。<br>
+                        但你没想到，事情会闹得这么大。<br><br>
+                        真相大白后，你成了网友口中的"帮凶"。<br>
+                        有人扒出了你的身份，你的社交账号被冲烂了。<br><br>
+                        学校也没有兑现全部承诺，毕竟"你已经没用了"。<br><br>
+                        你走在校园里，总感觉有人在背后指指点点。<br>
+                        你不知道该怪谁，怪学校？怪自己？还是怪这个世道？<br><br>
+                        你得到了一些东西，但失去了更多。<br><br>
+                        <span style="color: #e74c3c;">⚖️ 有些选择，一旦做错，就再也回不了头</span>
+                    `,
+                    image: 'https://aka.doubaocdn.com/s/bDxF1wewD2'
+                },
+                secret: {
+                    title: '🌟 隐藏结局：智慧的生存者',
+                    type: 'ending-secret',
+                    content: `
+                        你很聪明。<br><br>
+                        表面上，你"配合"了学校，没有硬刚。<br>
+                        但暗地里，你把所有证据都备份了，还匿名发给了几家媒体。<br><br>
+                        你既没有正面得罪学校，也没有让真相被埋没。<br><br>
+                        真相大白后，学校找不到你的把柄，毕竟你"什么都没做"。<br>
+                        网友也不知道你的存在，你安静地看着这一切。<br><br>
+                        你保住了自己的利益，也守住了良心的底线。<br>
+                        虽然不是那么光彩，但在这个复杂的世界里，也许这就是最好的结果。<br><br>
+                        <span style="color: #9b59b6;">🎭 成年人的世界，不是非黑即白</span>
+                    `,
+                    image: 'https://aka.doubaocdn.com/s/f8R11wewD2'
+                }
+            }
+        };
+
+        // 江局长视角
+        const officialData = {
+            name: '市监局江局长',
+            label: '👔 江局长视角',
+            bgClass: 'official-mood',
+            questions: [
+                {
+                    q: '6月2日，你接到了江西工业职业技术学院的报告，说食堂有学生吃出"疑似异物"，希望你们市监局去"鉴定"一下。你第一反应是？',
+                    opt: ["高度重视，立刻安排人去现场", "不就是个食堂异物吗，让下面人去看看", "先问问学校想怎么处理", "感觉有点麻烦，能推就推"]
+                },
+                {
+                    q: '你带着人去了学校食堂。学校后勤处长很热情，拉着你说"就是个鸭脖，学生认错了，江局长您帮忙定个性"。你会？',
+                    opt: ["坚持要看实物，按流程来", "先看看再说，不急于表态", "都是熟人，给个面子算了", "让手下人去看，自己懒得管"]
+                },
+                {
+                    q: '你看到了那个"异物"的照片。说实话，你也觉得更像鼠头。但学校领导一个劲地说"就是鸭脖"，还暗示你"市领导很关注"。你会？',
+                    opt: ["坚持原则，是什么就是什么", "有点犹豫，不想得罪人", "算了，学校说啥就是啥吧", "让专家来鉴定，自己不担责"]
+                },
+                {
+                    q: '晚上，你的老领导给你打电话了，说"这个事学校那边很重视，你帮忙处理一下，对你也有好处"。你会？',
+                    opt: ["跟老领导说明情况，不能乱定性", "嘴上答应，心里有自己的打算", "老领导都发话了，照办就是", "两边不得罪，拖着再说"]
+                },
+                {
+                    q: '要开新闻发布会了，记者们都在。学校希望你亲口说"经鉴定，确认是鸭脖"。你会怎么说？',
+                    opt: ["实话实说，目前还在调查中", "含糊其辞，不明确表态", "按学校说的来，确认是鸭脖", "说是鸭脖，但留有余地"]
+                },
+                {
+                    q: '你对着镜头说："经过反复比对，确认这个异物就是鸭脖。"说完之后，你感觉？',
+                    opt: ["心里很虚，怕被戳穿", "无所谓，反正大家都这么说", "有点愧疚，但没办法", "相信学校，应该不会错"]
+                },
+                {
+                    q: '视频在网上疯传，网友都在骂你"指鼠为鸭"，还把你做成了表情包。你会？',
+                    opt: ["很后悔，不该说那句话", "无所谓，网上的事很快就过去了", "有点生气，但也没办法", "开始担心自己的位子"]
+                },
+                {
+                    q: '上级领导找你谈话了，语气很严肃，说"这个事情影响很坏"。你感觉？',
+                    opt: ["完了，要出事了", "赶紧撇清责任", "主动承认错误，争取宽大", "静观其变，看看风向"]
+                },
+                {
+                    q: '省里成立了联合调查组，要重新调查这件事。他们说要找你了解情况。你会？',
+                    opt: ["如实交代，把所有情况都说清楚", "还是按之前的说法，硬扛", "把责任都推给学校", "主动认错，争取从轻处理"]
+                },
+                {
+                    q: '调查组找你谈了好几次话，问得很细。你感觉到，他们已经掌握了不少情况。这时候你会？',
+                    opt: ["彻底坦白，争取宽大处理", "还在犹豫，抱有侥幸心理", "把知道的都说了，包括领导的事", "只说自己的事，不牵扯别人"]
+                },
+                {
+                    q: '6月17日，调查结果公布了：确认是鼠头。你被免职了。听到这个消息，你？',
+                    opt: ["反而松了一口气，终于结束了", "很后悔，当初不该说那个话", "不甘心，觉得自己是背锅的", "无所谓，大不了换个地方"]
+                },
+                {
+                    q: '事情结束后，你被调到了一个闲职。回顾这件事，你最大的感触是...',
+                    opt: ["查看你的结局"]
+                }
+            ],
+            endings: {
+                good: {
+                    title: '🏆 好结局：良心未泯',
+                    type: 'ending-good',
+                    content: `
+                        你最终选择了说出真相。<br><br>
+                        虽然被免职了，但你心里踏实了很多。<br>
+                        至少，你没有在错误的路上越走越远。<br><br>
+                        被调到闲职后，你反而有了更多时间陪家人。<br>
+                        有时候你会想，如果当初坚持原则，会不会更好？<br>
+                        但人生没有如果。<br><br>
+                        好在，最后你还是做了正确的选择。<br>
+                        虽然晚了点，但总比一直错下去好。<br><br>
+                        <span style="color: #27ae60;">✨ 知错能改，善莫大焉</span>
+                    `,
+                    image: 'https://aka.doubaocdn.com/s/VaUG1wewD2'
+                },
+                normal: {
+                    title: '😔 普通结局：官场沉浮',
+                    type: 'ending-normal',
+                    content: `
+                        你被免职了，但没有被追究更多责任。<br><br>
+                        你成了这个事件的"背锅侠"之一。<br>
+                        有人替你惋惜，也有人说你活该。<br><br>
+                        你在新的岗位上过得不好不坏。<br>
+                        以前的下属见了你，还是会客气地叫一声"江局"，<br>
+                        但你知道，那只是客气而已。<br><br>
+                        你有时候会反思，如果当初坚持原则，会不会不一样？<br>
+                        但你也知道，在那个位置上，很多事情身不由己。<br><br>
+                        这就是官场吧。<br><br>
+                        <span style="color: #f39c12;">💭 人在江湖，身不由己</span>
+                    `,
+                    image: 'https://aka.doubaocdn.com/s/LncO1wewD2'
+                },
+                bad: {
+                    title: '💔 坏结局：一错再错',
+                    type: 'ending-bad',
+                    content: `
+                        你一直硬扛着，直到最后一刻还在狡辩。<br><br>
+                        结果，你不仅被免职，还被查出了其他问题。<br>
+                        从重处理。<br><br>
+                        你成了这个事件中处理最重的人之一。<br>
+                        以前的朋友同事都躲着你，生怕被牵连。<br><br>
+                        你坐在空荡荡的办公室里，回想这一切。<br>
+                        如果当初说了实话，会不会是另一个结果？<br><br>
+                        可惜，没有如果。<br><br>
+                        <span style="color: #e74c3c;">⚖️ 一步错，步步错</span>
+                    `,
+                    image: 'https://aka.doubaocdn.com/s/bDxF1wewD2'
+                },
+                secret: {
+                    title: '🌟 隐藏结局：明哲保身',
+                    type: 'ending-secret',
+                    content: `
+                        你很懂官场的生存之道。<br><br>
+                        你没有硬刚领导，也没有把话说死。<br>
+        你留了很多后手，很多"余地"。<br><br>
+                        事情闹大后，你第一时间"配合调查"，<br>
+                        把该说的都说了，把该撇的都撇了。<br><br>
+                        最后，你虽然也受了处分，但保住了基本盘。<br>
+                        没过多久，又换了个地方重新上任。<br><br>
+                        别人都说你"运气好"，只有你自己知道，<br>
+                        这运气背后，是多少年的官场修炼。<br><br>
+                        良心？值几个钱？<br><br>
+                        <span style="color: #9b59b6;">🎭 官场的生存智慧，你拿捏得死死的</span>
+                    `,
+                    image: 'https://aka.doubaocdn.com/s/JB0T1wewD2'
+                }
+            }
+        };
+
+        // 食堂老板视角
+        const bossData = {
+            name: '食堂档口老板',
+            label: '🍳 食堂老板视角',
+            bgClass: 'boss-mood',
+            questions: [
+                {
+                    q: '你是江西工业职业技术学院食堂卤味档口的承包商，姓朱。做餐饮这行十几年了，一直小本生意。这天早上，后厨师傅跟你说："老板，好像有老鼠..."你第一反应是？',
+                    opt: ["赶紧找专业的人来灭鼠", "先自己看看情况再说", "不可能吧，我们卫生一直很好", "别声张，先处理掉再说"]
+                },
+                {
+                    q: '你在后厨角落发现了老鼠的痕迹。说实话，做餐饮这么多年，这也不是第一次遇到。但最近正好在评什么"卫生示范"，这时候出问题就麻烦了。你会？',
+                    opt: ["立刻停业整顿，彻底灭鼠", "先简单处理一下，等检查过了再说", "晚上偷偷灭鼠，白天正常营业", "买点老鼠药放着，应该没事"]
+                },
+                {
+                    q: '中午，你正在后厨忙活，突然听到前面吵起来了。出去一看，一个学生举着个东西说"这是老鼠头！"。你心里咯噔一下。你会？',
+                    opt: ["赶紧过去道歉，商量怎么解决", "一口咬定是鸭脖，不可能是老鼠", "先把学生拉到一边，别影响生意", "假装不知道，让员工去处理"]
+                },
+                {
+                    q: '学生拍了视频，说要发网上。你急了。这时候食堂经理过来了，把你拉到一边说："朱老板，这个事你得扛下来，就说是鸭脖，学校不会亏待你的"。你会？',
+                    opt: ["不行，不能说谎，该怎么处理怎么处理", "有点犹豫，不知道该怎么办", "行，学校都这么说了，我配合", "先答应着，看看情况再说"]
+                },
+                {
+                    q: '学校后勤处长找你谈话了。他说："老朱啊，这个事你配合一下，就说是鸭脖。这个档口你还想不想做了？以后还有没有合作机会，就看你这次了。"你会？',
+                    opt: ["坚持说真话，大不了不干了", "心里不愿意，但不敢得罪学校", "同意配合，但要求学校给保证", "先拖着，看看舆论情况"]
+                },
+                {
+                    q: '你跟那个学生谈了，想私了。你说"同学，给你两千块钱，把视频删了行不行？"。学生不同意，说不是钱的事。你会？',
+                    opt: ["算了，人家不愿意就算了", "继续加价，直到他同意", "威胁他，不然后果自负", "找学校出面，让学校去压"]
+                },
+                {
+                    q: '视频还是发出去了，而且越闹越大。你的档口生意一落千丈，没人敢来吃了。你会？',
+                    opt: ["后悔当初没说实话", "怪那个学生小题大做", "怪学校没处理好", "无所谓，大不了换个地方"]
+                },
+                {
+                    q: '学校找你，说"这个事你得背点责任，对外就说是你操作不当"。作为补偿，下学期的承包费给你减半。你会？',
+                    opt: ["不同意，凭什么让我背锅", "虽然不甘心，但也只能认了", "同意，减半也不少钱呢", "要求更多补偿，不然不答应"]
+                },
+                {
+                    q: '省里成立了联合调查组，要找你了解情况。你心里有点慌，毕竟后厨卫生什么情况，你最清楚。你会？',
+                    opt: ["如实交代，争取宽大处理", "还是按之前的说法，硬扛", "把责任都推给员工", "主动认错，把该说的都说了"]
+                },
+                {
+                    q: '调查组问了你很多问题，包括后厨卫生、灭鼠情况、和学校的往来等等。你感觉他们好像什么都知道。这时候你会？',
+                    opt: ["彻底坦白，争取从轻", "还在犹豫，怕说多了罚得重", "只说鼠头的事，不说其他的", "把学校也供出来，大家一起完蛋"]
+                },
+                {
+                    q: '6月17日，调查结果出来了。确认是鼠头。你的档口被封了，还被罚了款。听到这个消息，你？',
+                    opt: ["反而松了一口气，终于结束了", "很后悔，当初不该存侥幸心理", "心疼钱，这一下亏大了", "不服气，觉得罚太重了"]
+                },
+                {
+                    q: '事情结束后，你换了个学校，还是做食堂档口。经历了这件事，你最大的改变是...',
+                    opt: ["查看你的结局"]
+                }
+            ],
+            endings: {
+                good: {
+                    title: '🏆 好结局：浪子回头',
+                    type: 'ending-good',
+                    content: `
+                        你选择了坦白，也接受了处罚。<br><br>
+                        虽然被罚了不少钱，档口也没了，<br>
+                        但你心里反而踏实了。<br><br>
+                        换了个地方重新开始后，你特别重视卫生。<br>
+                        灭鼠、消毒、食材新鲜，每一样都严格把关。<br><br>
+                        生意虽然不如以前火爆，但做得安心。<br>
+                        你常跟员工说："做餐饮，良心最重要。"<br><br>
+                        经历过那件事，你才真正明白：<br>
+                        有些钱，不能省；有些谎，不能说。<br><br>
+                        <span style="color: #27ae60;">✨ 知错能改，善莫大焉</span>
+                    `,
+                    image: 'https://aka.doubaocdn.com/s/VaUG1wewD2'
+                },
+                normal: {
+                    title: '😔 普通结局：小本生意',
+                    type: 'ending-normal',
+                    content: `
+                        你被罚了款，档口也没了。<br><br>
+                        你骂过学校，骂过那个学生，也骂过自己。<br>
+                        但骂完了，日子还得过。<br><br>
+                        换了个学校，还是做食堂档口。<br>
+                        卫生比以前好了点，但也没好太多。<br>
+                        毕竟，成本摆在那里。<br><br>
+                        你有时候会想，如果当初没存侥幸心理，<br>
+                        会不会就不会出这么大的事？<br><br>
+                        但想也没用。<br>
+                        小本生意，就是这样，在夹缝中生存。<br><br>
+                        <span style="color: #f39c12;">💭 成年人的世界，没有容易二字</span>
+                    `,
+                    image: 'https://aka.doubaocdn.com/s/ZLTO1wewD2'
+                },
+                bad: {
+                    title: '💔 坏结局：一败涂地',
+                    type: 'ending-bad',
+                    content: `
+                        你不仅被罚了巨款，还被列入了黑名单。<br><br>
+                        以后都不能再做餐饮这行了。<br>
+                        十几年的积累，一夜归零。<br><br>
+                        你想不通，不就是个老鼠头吗？<br>
+                        至于罚这么重吗？<br><br>
+                        你怪那个学生多事，怪学校甩锅，<br>
+        怪调查组不近人情，怪自己运气不好。<br><br>
+                        但你从来没想过，<br>
+                        如果当初重视卫生，就不会有老鼠；<br>
+                        如果出了事就坦白，也不会闹这么大。<br><br>
+                        一切，都是自己选的。<br><br>
+                        <span style="color: #e74c3c;">⚖️ 侥幸心理，终究会付出代价</span>
+                    `,
+                    image: 'https://aka.doubaocdn.com/s/bDxF1wewD2'
+                },
+                secret: {
+                    title: '🌟 隐藏结局：精明的商人',
+                    type: 'ending-secret',
+                    content: `
+                        你很精明。<br><br>
+                        事情一出，你就知道瞒不住。<br>
+                        但你也知道，怎么把损失降到最低。<br><br>
+        你主动认错，积极配合调查，<br>
+        把该担的责任担了，把不该担的都撇了。<br><br>
+        最后，虽然也被罚了，但比预期的轻很多。<br>
+        而且因为"态度好"，没有被列入黑名单。<br><br>
+        换了个地方，换了个名字，你又重新开张了。<br>
+        卫生？比以前好了一点。但也就一点。<br><br>
+        毕竟，商人嘛，追求的是利益最大化。<br>
+        只要不出事，就行了。<br><br>
+        <span style="color: #9b59b6;">🎭 做生意，要的就是灵活</span>
+                    `,
+                    image: 'https://aka.doubaocdn.com/s/f8R11wewD2'
+                }
+            }
+        };
+
+        // ==================== 全局变量 ====================
+        let currentPerspective = null;
+        let currentData = null;
+        let current = 0;
+        let answers = [];
+        let stats = {
+            truth: 50,    // 真相值
+            pressure: 20, // 压力值
+            publicOp: 10  // 舆论值
+        };
+
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const optionsEl = document.getElementById('options');
+        const mainBox = document.getElementById('mainBox');
+        const selectScreen = document.getElementById('selectScreen');
+        const progressEl = document.getElementById('progress');
+        const questionEl = document.getElementById('question');
+        const perspectiveLabel = document.getElementById('perspectiveLabel');
+
+        // ==================== 音频 ====================
+        let audioContext;
+
+        function initAudio() {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        function playNote(frequency, duration, delay = 0, type = 'sine', volume = 0.1) {
+            if (!audioContext) return;
+            
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = frequency;
+            oscillator.type = type;
+            
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime + delay);
+            gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + delay + 0.05);
+            gainNode.gain.linearRampToValueAtTime(volume * 0.5, audioContext.currentTime + delay + duration - 0.1);
+            gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + delay + duration);
+            
+            oscillator.start(audioContext.currentTime + delay);
+            oscillator.stop(audioContext.currentTime + delay + duration);
+        }
+
+        function playSound(type) {
+            if (!audioContext) return;
+            
+            switch(type) {
+                case 'click':
+                    playNote(800, 0.08, 0, 'sine', 0.08);
+                    break;
+                case 'shock':
+                    playNote(150, 0.3, 0, 'sawtooth', 0.1);
+                    setTimeout(() => playNote(100, 0.4, 0, 'sawtooth', 0.08), 100);
+                    break;
+                case 'pressure':
+                    playNote(200, 0.5, 0, 'sine', 0.05);
+                    break;
+                case 'news':
+                    playNote(600, 0.1, 0, 'square', 0.05);
+                    setTimeout(() => playNote(800, 0.15, 0, 'square', 0.05), 100);
+                    break;
+                case 'truth':
+                    playNote(523, 0.15, 0, 'sine', 0.1);
+                    setTimeout(() => playNote(659, 0.15, 0.15, 'sine', 0.1), 150);
+                    setTimeout(() => playNote(784, 0.3, 0.3, 'sine', 0.1), 300);
+                    break;
+                case 'bad':
+                    playNote(400, 0.2, 0, 'sine', 0.1);
+                    setTimeout(() => playNote(300, 0.3, 0.2, 'sine', 0.1), 200);
+                    break;
+            }
+        }
+
+        // ==================== 特殊效果 ====================
+
+        // 消息轰炸效果
+        function notificationBomb(count = 8) {
+            const messages = [
+                { title: '微博热搜', content: '爆！高校食堂吃出鼠头' },
+                { title: '微信消息', content: '辅导员：来我办公室一趟' },
+                { title: '新闻推送', content: '市监局回应：确认为鸭脖' },
+                { title: '抖音通知', content: '你的视频上热门了！' },
+                { title: '知乎热榜', content: '如何评价鼠头鸭脖事件？' },
+                { title: '朋友圈', content: '有人@了你' },
+                { title: '短信', content: '【学校通知】请速到教务处' },
+                { title: 'B站消息', content: '你的视频播放量破10万' },
+                { title: '评论提醒', content: '有1000条新评论' },
+                { title: '热搜榜', content: '指鼠为鸭 沸' }
+            ];
+
+            for (let i = 0; i < count; i++) {
+                setTimeout(() => {
+                    const msg = messages[Math.floor(Math.random() * messages.length)];
+                    const notif = document.createElement('div');
+                    notif.className = 'notification';
+                    notif.style.top = (50 + Math.random() * 200) + 'px';
+                    notif.innerHTML = `
+                        <div class="notif-title">${msg.title}</div>
+                        <div class="notif-content">${msg.content}</div>
+                    `;
+                    document.body.appendChild(notif);
+                    
+                    setTimeout(() => notif.classList.add('show'), 50);
+                    setTimeout(() => {
+                        notif.classList.remove('show');
+                        setTimeout(() => notif.remove(), 300);
+                    }, 2000 + Math.random() * 1000);
+                    
+                    playSound('news');
+                }, i * 300);
+            }
+        }
+
+        // 压迫感效果
+        function pressureEffect(duration = 3000) {
+            document.body.classList.add('pressure-mood');
+            
+            const overlay = document.createElement('div');
+            overlay.className = 'pressure-overlay';
+            document.body.appendChild(overlay);
+            
+            setTimeout(() => overlay.classList.add('show'), 100);
+            playSound('pressure');
+            
+            // 心跳效果
+            let beats = 0;
+            const interval = setInterval(() => {
+                mainBox.style.transform = 'scale(0.98)';
+                setTimeout(() => mainBox.style.transform = 'scale(1)', 100);
+                beats++;
+                if (beats >= 5) clearInterval(interval);
+            }, 600);
+            
+            setTimeout(() => {
+                overlay.classList.remove('show');
+                setTimeout(() => {
+                    overlay.remove();
+                    document.body.classList.remove('pressure-mood');
+                    if (currentData) {
+                        document.body.classList.add(currentData.bgClass);
+                    }
+                }, 500);
+            }, duration);
+        }
+
+        // 弹幕效果
+        function danmakuEffect(count = 15) {
+            const comments = [
+                '指鼠为鸭，哈哈哈哈',
+                '这也太离谱了吧',
+                '当我们瞎吗？',
+                '江局长火了',
+                '鸭脖：我谢谢你啊',
+                '鼠头：我成鸭脖了？',
+                '学校能不能走点心',
+                '食品安全大于天',
+                '这也敢洗？',
+                '绝味鸭脖：勿cue',
+                '我吐了',
+                '再也不敢吃食堂了',
+                '严查！',
+                '支持学生维权',
+                '这就是现实',
+                '开眼界了',
+                '成语又添新成员'
+            ];
+
+            for (let i = 0; i < count; i++) {
+                setTimeout(() => {
+                    const comment = comments[Math.floor(Math.random() * comments.length)];
+                    const danmaku = document.createElement('div');
+                    danmaku.className = 'danmaku';
+                    danmaku.innerText = comment;
+                    danmaku.style.top = (10 + Math.random() * 80) + '%';
+                    danmaku.style.left = '100%';
+                    danmaku.style.fontSize = (12 + Math.random() * 6) + 'px';
+                    document.body.appendChild(danmaku);
+                    
+                    const duration = 5 + Math.random() * 3;
+                    danmaku.style.transition = `left ${duration}s linear`;
+                    
+                    setTimeout(() => {
+                        danmaku.style.left = -danmaku.offsetWidth + 'px';
+                    }, 50);
+                    
+                    setTimeout(() => danmaku.remove(), duration * 1000 + 500);
+                }, i * 200);
+            }
+        }
+
+        // 真相大白效果
+        function truthEffect() {
+            document.body.classList.add('truth-mood');
+            
+            const light = document.createElement('div');
+            light.className = 'truth-light';
+            document.body.appendChild(light);
+            
+            playSound('truth');
+            
+            setTimeout(() => light.remove(), 3000);
+        }
+
+        // 画面晃动效果
+        function shakeEffect() {
+            mainBox.classList.add('shake');
+            playSound('shock');
+            setTimeout(() => mainBox.classList.remove('shake'), 500);
+        }
+
+        // 新闻弹窗
+        function showNewsPopup(imageUrl, title, duration = 4000) {
+            const popup = document.createElement('div');
+            popup.className = 'news-popup';
+            popup.innerHTML = `
+                <img src="${imageUrl}" alt="新闻">
+                <div class="news-title">${title}</div>
+                <div class="news-close">点击关闭</div>
+            `;
+            document.body.appendChild(popup);
+            
+            setTimeout(() => popup.classList.add('show'), 100);
+            playSound('news');
+            
+            popup.onclick = () => {
+                popup.classList.remove('show');
+                setTimeout(() => popup.remove(), 500);
+            };
+            
+            setTimeout(() => {
+                if (popup.parentNode) {
+                    popup.classList.remove('show');
+                    setTimeout(() => popup.remove(), 500);
+                }
+            }, duration);
+        }
+
+        // ==================== 游戏逻辑 ====================
+
+        function startGame(perspective) {
+            playSound('click');
+            
+            currentPerspective = perspective;
+            
+            switch(perspective) {
+                case 'student':
+                    currentData = studentData;
+                    break;
+                case 'official':
+                    currentData = officialData;
+                    break;
+                case 'boss':
+                    currentData = bossData;
+                    break;
+            }
+            
+            current = 0;
+            answers = Array(currentData.questions.length).fill(null);
+            stats = { truth: 50, pressure: 20, publicOp: 10 };
+            
+            selectScreen.classList.add('hidden');
+            mainBox.classList.remove('hidden');
+            
+            document.body.classList.add(currentData.bgClass);
+            perspectiveLabel.innerText = currentData.label;
+            
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            const q = currentData.questions[current];
+            progressEl.innerText = `第 ${current + 1} 题 / 共 ${currentData.questions.length} 题`;
+            questionEl.innerText = q.q;
+            optionsEl.innerHTML = '';
+            
+            // 更新数值条
+            document.getElementById('truthFill').style.width = stats.truth + '%';
+            document.getElementById('pressureFill').style.width = stats.pressure + '%';
+            document.getElementById('publicFill').style.width = stats.publicOp + '%';
+            
+            q.opt.forEach((item, idx) => {
+                const div = document.createElement('div');
+                div.className = 'option';
+                if (answers[current] === idx) div.classList.add('selected');
+                div.innerText = item;
+                
+                div.onclick = () => {
+                    answers[current] = idx;
+                    document.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
+                    div.classList.add('selected');
+                    playSound('click');
+                    
+                    // 更新数值
+                    updateStats(current, idx);
+                    
+                    // 触发效果
+                    triggerEffect(current, idx);
+                };
+                
+                optionsEl.appendChild(div);
+            });
+            
+            prevBtn.disabled = current === 0;
+            nextBtn.innerText = current === currentData.questions.length - 1 ? '查看结局' : '下一题';
+            
+            // 进入题目时的效果
+            triggerEnterEffect(current);
+        }
+
+        // 更新数值
+        function updateStats(qIndex, optIndex) {
+            // 根据视角和选项更新数值
+            // 这是简化版，每个选项有不同的影响
+            const effects = {
+                // 学生视角
+                student: [
+                    { truth: [10, 0, 5, 8], pressure: [0, 0, 0, -5], publicOp: [0, 0, 0, 5] },
+                    { truth: [10, 0, 5, 8], pressure: [0, 0, 0, -3], publicOp: [10, 0, 5, 15] },
+                    { truth: [10, -10, 5, 0], pressure: [5, -5, 10, 0], publicOp: [15, -10, 20, 5] },
+                    { truth: [5, 0, 5, -5], pressure: [10, 15, 5, 10], publicOp: [0, 0, 0, 0] },
+                    { truth: [15, 5, -10, 0], pressure: [15, 10, 5, 10], publicOp: [0, 0, 0, 0] },
+                    { truth: [20, 10, 0, -15], pressure: [20, 15, 10, 5], publicOp: [0, 0, 0, 0] },
+                    { truth: [15, -5, 20, 0], pressure: [10, 5, 15, 5], publicOp: [10, 0, 15, 5] },
+                    { truth: [5, 15, 0, -5], pressure: [20, 25, 10, 5], publicOp: [20, 20, 15, 10] },
+                    { truth: [15, -10, 5, 10], pressure: [10, 15, 5, 15], publicOp: [0, 0, 0, 0] },
+                    { truth: [10, -5, 5, 0], pressure: [-10, 5, -5, 10], publicOp: [0, 0, 0, 0] },
+                    { truth: [5, 5, 5, 5], pressure: [-10, -5, -5, 10], publicOp: [10, 10, 10, 10] },
+                    { truth: [0, 0, 0, 0], pressure: [0, 0, 0, 0], publicOp: [0, 0, 0, 0] }
+                ],
+                // 江局长视角
+                official: [
+                    { truth: [10, 0, 5, -5], pressure: [0, 5, 10, 5], publicOp: [0, 0, 0, 0] },
+                    { truth: [15, 5, -10, 0], pressure: [5, 10, 15, 5], publicOp: [0, 0, 0, 0] },
+                    { truth: [15, 5, -15, 0], pressure: [10, 15, 5, 10], publicOp: [0, 0, 0, 0] },
+                    { truth: [10, 5, -10, 0], pressure: [5, 10, 15, 10], publicOp: [0, 0, 0, 0] },
+                    { truth: [10, 5, -15, -5], pressure: [15, 10, 5, 10], publicOp: [5, 10, 20, 15] },
+                    { truth: [-5, -10, -15, -5], pressure: [10, 5, 0, 5], publicOp: [10, 10, 15, 10] },
+                    { truth: [0, 0, 0, 0], pressure: [15, 5, 10, 15], publicOp: [20, 20, 20, 20] },
+                    { truth: [0, 0, 0, 0], pressure: [20, 25, 15, 10], publicOp: [20, 20, 20, 20] },
+                    { truth: [15, -15, -10, 10], pressure: [10, 20, 15, 15], publicOp: [0, 0, 0, 0] },
+                    { truth: [20, -10, 15, 10], pressure: [-5, 15, 0, 5], publicOp: [0, 0, 0, 0] },
+                    { truth: [5, 5, 5, 5], pressure: [-15, -10, -10, -5], publicOp: [10, 10, 10, 10] },
+                    { truth: [0, 0, 0, 0], pressure: [0, 0, 0, 0], publicOp: [0, 0, 0, 0] }
+                ],
+                // 食堂老板视角
+                boss: [
+                    { truth: [15, 5, 0, -10], pressure: [0, 5, 5, 10], publicOp: [0, 0, 0, 0] },
+                    { truth: [15, 0, -10, -5], pressure: [5, 10, 10, 15], publicOp: [0, 0, 0, 0] },
+                    { truth: [10, -15, 5, -10], pressure: [5, 10, 15, 10], publicOp: [10, 15, 10, 5] },
+                    { truth: [10, 0, -15, -5], pressure: [10, 15, 5, 10], publicOp: [0, 0, 0, 0] },
+                    { truth: [15, 5, -10, 0], pressure: [5, 15, 10, 10], publicOp: [0, 0, 0, 0] },
+                    { truth: [10, -5, -15, -10], pressure: [5, 10, 15, 10], publicOp: [5, 10, 15, 10] },
+                    { truth: [5, -5, -10, 0], pressure: [10, 15, 15, 5], publicOp: [20, 20, 20, 20] },
+                    { truth: [5, -5, -10, 0], pressure: [15, 10, 5, 10], publicOp: [20, 20, 20, 20] },
+                    { truth: [15, -15, -10, 10], pressure: [10, 20, 15, 15], publicOp: [0, 0, 0, 0] },
+                    { truth: [20, -10, 5, 15], pressure: [-5, 15, 5, 0], publicOp: [0, 0, 0, 0] },
+                    { truth: [5, 5, 5, 5], pressure: [-10, -5, -5, 0], publicOp: [10, 10, 10, 10] },
+                    { truth: [0, 0, 0, 0], pressure: [0, 0, 0, 0], publicOp: [0, 0, 0, 0] }
+                ]
+            };
+
+            const perspEffects = effects[currentPerspective];
+            if (perspEffects && perspEffects[qIndex]) {
+                stats.truth += perspEffects[qIndex].truth[optIndex] || 0;
+                stats.pressure += perspEffects[qIndex].pressure[optIndex] || 0;
+                stats.publicOp += perspEffects[qIndex].publicOp[optIndex] || 0;
+                
+                // 限制范围 0-100
+                stats.truth = Math.max(0, Math.min(100, stats.truth));
+                stats.pressure = Math.max(0, Math.min(100, stats.pressure));
+                stats.publicOp = Math.max(0, Math.min(100, stats.publicOp));
+            }
+        }
+
+        // 进入题目时的效果
+        function triggerEnterEffect(qIndex) {
+            // 通用效果
+            if (qIndex === 0) {
+                // 第一题，什么都不做
+            }
+            
+            // 学生视角特有效果
+            if (currentPerspective === 'student') {
+                if (qIndex === 0) {
+                    // 第一题，发现异物
+                    setTimeout(shakeEffect, 1000);
+                }
+                if (qIndex === 3) {
+                    // 辅导员找谈话，压迫感
+                    setTimeout(pressureEffect, 500);
+                }
+                if (qIndex === 6) {
+                    // 学校发通报，新闻弹窗
+                    setTimeout(() => {
+                        showNewsPopup(
+                            'https://aka.doubaocdn.com/s/AC0a1wewD2',
+                            '突发：学校发布情况通报'
+                        );
+                    }, 800);
+                }
+                if (qIndex === 7) {
+                    // 上热搜，消息轰炸+弹幕
+                    setTimeout(notificationBomb, 500);
+                    setTimeout(danmakuEffect, 1000);
+                }
+                if (qIndex === 10) {
+                    // 真相大白
+                    setTimeout(truthEffect, 500);
+                    setTimeout(() => {
+                        showNewsPopup(
+                            'https://aka.doubaocdn.com/s/VaUG1wewD2',
+                            '重磅！联合调查组通报：确认为鼠头'
+                        );
+                    }, 1500);
+                }
+            }
+            
+            // 江局长视角特有效果
+            if (currentPerspective === 'official') {
+                if (qIndex === 3) {
+                    // 老领导打电话，压迫感
+                    setTimeout(pressureEffect, 500);
+                }
+                if (qIndex === 6) {
+                    // 网友骂，弹幕
+                    setTimeout(danmakuEffect, 500);
+                }
+                if (qIndex === 7) {
+                    // 上级谈话，压迫感
+                    setTimeout(pressureEffect, 500);
+                }
+                if (qIndex === 10) {
+                    // 被免职
+                    setTimeout(shakeEffect, 500);
+                    setTimeout(() => {
+                        showNewsPopup(
+                            'https://aka.doubaocdn.com/s/bDxF1wewD2',
+                            '官方通报：江局长被免职'
+                        );
+                    }, 1000);
+                }
+            }
+            
+            // 食堂老板视角特有效果
+            if (currentPerspective === 'boss') {
+                if (qIndex === 2) {
+                    // 出事了，震惊
+                    setTimeout(shakeEffect, 500);
+                }
+                if (qIndex === 6) {
+                    // 生意一落千丈，弹幕
+                    setTimeout(danmakuEffect, 500);
+                }
+                if (qIndex === 10) {
+                    // 被罚了
+                    setTimeout(shakeEffect, 500);
+                    setTimeout(() => {
+                        showNewsPopup(
+                            'https://aka.doubaocdn.com/s/ZLTO1wewD2',
+                            '处罚结果公布：涉事企业被罚706万'
+                        );
+                    }, 1000);
+                }
+            }
+        }
+
+        // 选择选项后的效果
+        function triggerEffect(qIndex, optIndex) {
+            // 学生视角
+            if (currentPerspective === 'student') {
+                if (qIndex === 1 && optIndex === 0) {
+                    // 拍视频发网上
+                    setTimeout(notificationBomb, 500);
+                }
+                if (qIndex === 4 && optIndex === 0) {
+                    // 坚决不同意
+                    setTimeout(pressureEffect, 500);
+                }
+            }
+            
+            // 江局长视角
+            if (currentPerspective === 'official') {
+                if (qIndex === 4 && optIndex === 2) {
+                    // 确认是鸭脖
+                    setTimeout(shakeEffect, 500);
+                }
+            }
+            
+            // 食堂老板视角
+            if (currentPerspective === 'boss') {
+                if (qIndex === 2 && optIndex === 1) {
+                    // 一口咬定是鸭脖
+                    setTimeout(shakeEffect, 500);
+                }
+            }
+        }
+
+        // ==================== 按钮事件 ====================
+        prevBtn.onclick = () => {
+            if (current > 0) {
+                current--;
+                renderQuestion();
+                playSound('click');
+            }
+        };
+
+        nextBtn.onclick = () => {
+            playSound('click');
+            
+            if (current < currentData.questions.length - 1) {
+                current++;
+                renderQuestion();
+            } else {
+                showEnding();
+            }
+        };
+
+        // ==================== 结局 ====================
+        function showEnding() {
+            mainBox.classList.add('hidden');
+            
+            // 计算结局
+            let endingKey;
+            
+            // 简单的结局判定逻辑
+            const truthScore = stats.truth;
+            const pressureScore = stats.pressure;
+            
+            // 判定是否为隐藏结局（需要特定选择组合，这里简化处理）
+            // 真相值高 + 压力值中等 = 隐藏结局（智慧处理）
+            if (truthScore >= 60 && truthScore < 80 && pressureScore >= 40 && pressureScore < 70) {
+                endingKey = 'secret';
+            } else if (truthScore >= 70) {
+                endingKey = 'good';
+            } else if (truthScore >= 40) {
+                endingKey = 'normal';
+            } else {
+                endingKey = 'bad';
+            }
+            
+            const ending = currentData.endings[endingKey];
+            
+            const endingScreen = document.createElement('div');
+            endingScreen.className = 'box ending-screen';
+            endingScreen.innerHTML = `
+                <img src="${ending.image}" class="ending-image" alt="结局图片">
+                <div class="ending-title ${ending.type}">${ending.title}</div>
+                <div class="ending-content">${ending.content}</div>
+                <div>
+                    <button class="restart-btn" id="restartBtn">再玩一次</button>
+                    <button class="restart-btn back-btn" id="backBtn">换个视角</button>
+                </div>
+            `;
+            document.body.appendChild(endingScreen);
+            
+            // 结局音效
+            if (endingKey === 'good' || endingKey === 'secret') {
+                playSound('truth');
+            } else {
+                playSound('bad');
+            }
+            
+            document.getElementById('restartBtn').onclick = () => {
+                endingScreen.remove();
+                restartGame();
+            };
+            
+            document.getElementById('backBtn').onclick = () => {
+                endingScreen.remove();
+                backToSelect();
+            };
+        }
+
+        function restartGame() {
+            current = 0;
+            answers = Array(currentData.questions.length).fill(null);
+            stats = { truth: 50, pressure: 20, publicOp: 10 };
+            
+            document.body.className = '';
+            document.body.classList.add(currentData.bgClass);
+            
+            mainBox.classList.remove('hidden');
+            renderQuestion();
+            playSound('click');
+        }
+
+        function backToSelect() {
+            document.body.className = '';
+            mainBox.classList.add('hidden');
+            selectScreen.classList.remove('hidden');
+            playSound('click');
+        }
+
+        // ==================== 初始化 ====================
+        document.getElementById('noticeBtn').onclick = () => {
+            document.getElementById('noticeModal').style.display = 'none';
+            initAudio();
+            selectScreen.classList.remove('hidden');
+        };
+    </script>
+</body>
+</html>
