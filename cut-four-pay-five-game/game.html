@@ -90,20 +90,49 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);min-height:10
 
 .scene-text p{margin-bottom:0.8rem;}
 
+/* Scene images */
+.scene-image{width:100%;margin:1rem 0;border-radius:10px;overflow:hidden;border:1px solid var(--rule);}
+.scene-image img{width:100%;display:block;}
+.scene-image .img-caption{font-size:0.78rem;color:var(--muted);text-align:center;padding:0.5rem 0.8rem;background:rgba(0,0,0,0.2);font-style:italic;}
+
 .typewriter{overflow:hidden;white-space:normal;}
 
 .fade-in{animation:fadeIn 0.5s ease;}
-@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+
+/* Scene transition overlay */
+.transition-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:1000;opacity:0;pointer-events:none;transition:opacity 0.15s ease;}
+.transition-overlay.active{opacity:1;pointer-events:all;}
+
+/* Choice button press animation */
+.choice-btn:active{transform:scale(0.98);transition:transform 0.05s;}
+
+/* Meter value pulse */
+.meter-pulse{animation:meterPulse 0.4s ease;}
+@keyframes meterPulse{0%{transform:scale(1);}50%{transform:scale(1.15);color:var(--accent);}100%{transform:scale(1);}}
 
 @media(max-width:600px){
   .persp-grid{grid-template-columns:1fr;}
   .menu-title{font-size:1.8rem;}
   .meters{flex-direction:column;gap:0.5rem;}
 }
+
+/* Save/Load */
+.save-bar{display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap;}
+.save-btn{background:var(--card);border:1px solid var(--rule);color:var(--muted);padding:0.35rem 0.8rem;border-radius:6px;cursor:pointer;font-size:0.78rem;transition:all 0.15s;font-family:var(--font);}
+.save-btn:hover{border-color:var(--accent);color:var(--ink);}
+.save-status{font-size:0.72rem;color:var(--deep-green);padding:0.35rem 0;opacity:0;transition:opacity 0.3s;}
+.save-status.show{opacity:1;}
+
+/* Progress bar */
+.progress-bar{width:100%;height:3px;background:var(--rule);border-radius:2px;margin-bottom:0.5rem;overflow:hidden;}
+.progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width 0.5s;}
+
 </style>
 </head>
 <body>
 <div id="app"></div>
+<div class="transition-overlay" id="transitionOverlay"></div>
 <button class="audio-ctrl" id="audioBtn" title="音乐开关">♪</button>
 
 <script>
@@ -270,6 +299,17 @@ let meters = {};
 
 function setMeter(name, val) {
   meters[name] = Math.max(0, Math.min(100, val));
+  // Pulse animation on meter value change
+  setTimeout(function() {
+    var meterItems = document.querySelectorAll('.meter-item');
+    meterItems.forEach(function(item) {
+      var valEl = item.querySelector('.meter-val');
+      if (valEl && valEl.textContent === String(val)) {
+        valEl.classList.add('meter-pulse');
+        setTimeout(function() { valEl.classList.remove('meter-pulse'); }, 400);
+      }
+    });
+  }, 50);
 }
 
 function renderMeters() {
@@ -315,6 +355,67 @@ function renderMenu() {
     '</div>';
 }
 
+// ═══════════════════════════════════════════════
+// SAVE / LOAD SYSTEM
+// ═══════════════════════════════════════════════
+function saveGame() {
+  if (!currentPerspective || !currentScene) return;
+  var saveData = {
+    perspId: currentPerspective.id,
+    sceneId: Object.keys(currentPerspective.scenes).find(function(k) { return currentPerspective.scenes[k] === currentScene; }),
+    meters: Object.assign({}, meters),
+    timestamp: Date.now()
+  };
+  localStorage.setItem('cut_four_save', JSON.stringify(saveData));
+  var status = document.getElementById('saveStatus');
+  if (status) { status.textContent = '✓ 已保存'; status.classList.add('show');
+    setTimeout(function() { status.classList.remove('show'); }, 2000); }
+}
+
+function loadGame() {
+  var saved = localStorage.getItem('cut_four_save');
+  if (!saved) { alert('没有找到存档'); return; }
+  var data = JSON.parse(saved);
+  var perspectives = {
+    farmer: { id:'farmer',name:'农机手夫妇',icon:'🚜',meters:{trust:60,greed:10},scenes:buildFarmerScenes()},
+    villager: { id:'villager',name:'村民·张姓大妈',icon:'👩‍🌾',meters:{greed:20,trust:50},scenes:buildVillagerScenes()},
+    official: { id:'official',name:'当地干部',icon:'🏛️',meters:{authority:50,justice:60},scenes:buildOfficialScenes()},
+    bystander: { id:'bystander',name:'旁观者',icon:'📱',meters:{justice:60,influence:10},scenes:buildBystanderScenes()}
+  };
+  currentPerspective = perspectives[data.perspId];
+  if (!currentPerspective) return;
+  meters = data.meters;
+  goToScene(data.sceneId);
+}
+
+function deleteSave() {
+  localStorage.removeItem('cut_four_save');
+  var status = document.getElementById('saveStatus');
+  if (status) { status.textContent = '✗ 存档已删除'; status.classList.add('show');
+    setTimeout(function() { status.classList.remove('show'); }, 2000); }
+}
+
+function renderSaveBar() {
+  if (!currentPerspective) return '';
+  return '<div class="save-bar">' +
+    '<button class="save-btn" onclick="saveGame()">💾 保存进度</button>' +
+    '<button class="save-btn" onclick="loadGame()">📂 读取存档</button>' +
+    '<button class="save-btn" onclick="deleteSave()">🗑 删除存档</button>' +
+    '<span class="save-status" id="saveStatus"></span>' +
+  '</div>';
+}
+
+function renderProgress() {
+  if (!currentPerspective) return '';
+  var sceneCounts = { farmer: 10, villager: 10, official: 8, bystander: 7 };
+  var total = sceneCounts[currentPerspective.id] || 10;
+  var currentKey = Object.keys(currentPerspective.scenes).find(function(k) { return currentPerspective.scenes[k] === currentScene; });
+  var sceneNum = parseInt((currentKey || '').replace(/[^0-9]/g, '')) || 0;
+  var isEnding = currentScene && currentScene.isEnding;
+  var pct = isEnding ? 100 : Math.min(95, Math.max(5, (sceneNum / total) * 100));
+  return '<div class="progress-bar"><div class="progress-fill" style="width:' + pct + '%"></div></div>';
+}
+
 function renderGame(scene) {
   currentScene = scene;
   const isEnding = scene.isEnding;
@@ -324,6 +425,8 @@ function renderGame(scene) {
       '<button class="back-btn" onclick="renderMenu()">← 返回主菜单</button>' +
     '</div>' +
     renderMeters() +
+    renderSaveBar() +
+    renderProgress() +
     '<div class="scene-box fade-in">';
 
   if (isEnding) {
@@ -343,7 +446,8 @@ function renderGame(scene) {
         '<div class="scene-title">' + (scene.sceneNum || '') + '</div>' +
         '<div class="scene-name">' + scene.title + '</div>' +
       '</div>' +
-      '<div class="scene-text">' + scene.text + '</div>';
+      '<div class="scene-text">' + scene.text + '</div>' +
+      (scene.image ? '<div class="scene-image"><img src="' + scene.image + '" alt="' + (scene.imageCaption || '') + '">' + (scene.imageCaption ? '<div class="img-caption">' + scene.imageCaption + '</div>' : '') + '</div>' : '');
 
     if (scene.bridge) {
       html += '<div class="narr-bridge">' + scene.bridge + '</div>';
@@ -369,8 +473,10 @@ function renderGame(scene) {
 
   html += '</div>';
   app.innerHTML = html;
-  app.scrollTop = 0;
-  window.scrollTo(0, 0);
+  setTimeout(function() {
+    app.scrollTop = 0;
+    window.scrollTo(0, 0);
+  }, 50);
 }
 
 function makeChoice(idx) {
@@ -426,7 +532,17 @@ function goToScene(sceneId) {
     }
   }
 
-  renderGame(scene);
+  // Scene transition
+  var overlay = document.getElementById('transitionOverlay');
+  if (overlay) {
+    overlay.classList.add('active');
+    setTimeout(function() {
+      renderGame(scene);
+      overlay.classList.remove('active');
+    }, 150);
+  } else {
+    renderGame(scene);
+  }
 }
 
 function startGame(perspId) {
@@ -459,6 +575,14 @@ function startGame(perspId) {
   Object.entries(currentPerspective.meters).forEach(function(entry) {
     setMeter(entry[0], entry[1]);
   });
+  // Auto-load save if exists for this perspective
+  if (localStorage.getItem('cut_four_save')) {
+    var saved = JSON.parse(localStorage.getItem('cut_four_save'));
+    if (saved.perspId === perspId) {
+      meters = saved.meters || meters;
+      return goToScene(saved.sceneId);
+    }
+  }
   goToScene('s0');
 }
 
@@ -491,12 +615,14 @@ function buildFarmerScenes() {
     // ── Chapter 3 ──
     'c3': { sceneNum: '第三幕', title: '泥泞中的三个小时',
       text: '<p>倒伏的湿麦，是收割机手的噩梦。麦秆湿漉漉地缠在刀片上，每割几米就要停下来清理。阿迪蹲在泥里，用手去抠刀片上的麦秆——她的手指被割破了，血混着泥，分不清哪是泥哪是血。</p><p>你从驾驶舱里探出头，看到阿迪跪在泥里的背影，心里像被什么东西狠狠揪了一下。你喊她："阿迪，上来！"她摇摇头，继续清理。</p><p>三个小时。平时二十分钟就能收完的田，你们用了三个小时。收割机吐出的麦粒，有些撒在了地上——这是倒伏湿麦没法避免的损耗。但你心里清楚：每一粒麦子，都是大妈弯腰种的。</p>',
+      image: 'assets/harvest_scene.jpg', imageCaption: '图：农机手夫妇在泥泞的麦田中艰难收割倒伏的湿麦',
       choices: [
         { text: '继续干，把活干完', hint: '信任值不变', meterChange: { trust: 0 }, nextScene: 'c4', bridge: '<strong>你咬咬牙，踩下油门。</strong>收割机在泥里艰难地前进。你告诉自己：再难也要干完。这是你的工作，也是你的信用。' }
       ] },
     // ── Chapter 4 ──
     'c4': { sceneNum: '第四幕', title: '割四赔五',
       text: '<p>收割完毕。你擦了擦汗，准备收钱走人。但大妈拦在了收割机前。</p><p>她指着地上的麦粒，声音尖利起来："你看看！你看看！撒了多少麦子！这得多少斤！"你解释这是倒伏湿麦的正常损耗，但她不听。她的话越来越离谱——"三亩多"变成了"四亩"，"四亩"又变成了"五亩二"。最后她说："你们不仅不能收工钱，还要赔我五百块！"</p><p>你看着地上的麦粒，又看着大妈的脸。你干了这么多年收割机，从来没见过这种事。阿迪站在你旁边，她的手还在流血。</p>',
+      image: 'assets/blocked_scene.jpg', imageCaption: '图：张大妈拦在收割机前，阻止农机手夫妇离开，坚持要求赔偿五百元',
       choices: [
         { text: '报警，让警察来处理', hint: '信任值-10', meterChange: { trust: -10 }, nextScene: 'c5', bridge: '<strong>你拨了110。</strong>等待警察的时候，大妈还在不停地数落。你看着阿迪——她的手在发抖。你握住她的手，但你的手也在抖。' },
         { text: '跟大妈理论，讲道理', hint: '信任值-5', meterChange: { trust: -5 }, nextScene: 'c5', bridge: '<strong>你试着跟大妈讲道理。</strong>你说："大妈，这是倒伏湿麦，撒点麦粒是正常的。"但大妈根本不听——她越说越激动，声音越来越大，引来了越来越多的围观者。' },
@@ -505,6 +631,7 @@ function buildFarmerScenes() {
     // ── Chapter 5 ──
     'c5': { sceneNum: '第五幕', title: '阿迪的眼泪',
       text: '<p>警察和村干部来了。村支书判定：麦粒撒落是正常损耗，大妈的要求不合理。</p><p>但大妈不依不饶。她拦在收割机前，不给钱不让走。围观的人越来越多——有人摇头，有人叹气，有人掏出手机。</p><p>村支书叹了口气，从自己口袋里掏出两百块，递给大妈。他说："我垫两百，你们再补三百，这事就算了。"</p><p>你愣住了。你不仅没拿到四百块工钱，还要倒贴三百块。阿迪从口袋里摸出钱——她的手还在流血——把钱递过去的时候，她的手在抖。然后她哭了。不是嚎啕大哭，是那种压着声音的、无声的流泪。你活了二十一年，第一次觉得心碎。</p>',
+      image: 'assets/wife_crying.jpg', imageCaption: '图：阿迪用沾着血和泥的手递出三百元钱，眼泪无声地滑落',
       choices: [
         { text: '默默收完剩下的活，干完走人', hint: '信任值-10', meterChange: { trust: -10 }, nextScene: 'c6', bridge: '<strong>你什么都没说。</strong>你把阿迪扶上车，继续去下一家。你的手在方向盘上发抖。你告诉自己：算了，算了。但你知道，有些东西，算了不了。' },
         { text: '直接离开，不干了', hint: '信任值-20', meterChange: { trust: -20 }, nextScene: 'c6', bridge: '<strong>你发动了收割机，想直接走。</strong>但村支书拦住了你——他说："小伙子，还有好几家等着收呢。别因为一个人，就否定所有人。"你犹豫了。' }
@@ -520,11 +647,22 @@ function buildFarmerScenes() {
     'c7': { sceneNum: '第七幕', title: '抉择时刻',
       text: '<p>你坐在收割机里，阿迪靠在你肩上睡着了。你打开了手机上的农机手群。</p><p>群里正在讨论各地的小麦行情。有人在问襄阳还有没有麦子要收，有人已经在来的路上了。你的手指悬在屏幕上。</p><p>你可以把你今天经历的事发出去，让全国农机手都知道——古驿镇，不，整个襄阳，有人坑农机手。你也可以选择沉默，毕竟"多一事不如少一事"。你还可以选择接受这个事实，毕竟人生在世，谁还没吃过亏？</p><p>但你想起了阿迪的眼泪，想起大妈那张脸，想起村支书掏出的两百块，想起那张泛黄的地契。</p><p>你该怎么做？</p>',
       choices: [
-        { text: '在群里发出警告', hint: '信任值-20', meterChange: { trust: -20 }, nextScene: 'end2', bridge: '<strong>你打了一段话，又删了。又打了一段，又删了。</strong>最后，你发了一句话："兄弟们，来襄阳古驿镇收麦的，一定要先签合同，先丈量。别问为什么，照做就行。"你不知道这句话会改变什么。但你知道，你必须说。' },
-        { text: '保持沉默', hint: '信任值+5', meterChange: { trust: 5 }, nextScene: 'end1', bridge: '<strong>你把手机收起来了。</strong>你什么都没说。但你不知道的是——你的沉默，被其他农机手感知到了。他们看到你发的朋友圈——只有一张图：阿迪的手，缠着创可贴，上面有泥。' },
-        { text: '接受事实，继续干活', hint: '信任值+10', meterChange: { trust: 10 }, nextScene: 'end4', bridge: '<strong>你发动了收割机，继续下一家。</strong>你告诉自己：不是所有人都像大妈那样。你还要挣钱，还要养家，还要给闺女买玩具。你不能因为一个坏人，就放弃所有好人。' },
-        { text: '心寒，离开这个行业', hint: '信任值-30', meterChange: { trust: -30 }, nextScene: 'end5', bridge: '<strong>你看着三十万的收割机，做了一个决定。</strong>你卖掉了它。你带着阿迪和闺女，去了深圳。你进了一家电子厂，每天十二个小时，流水线。你不再看麦田，不再闻麦香，不再想襄阳。' },
-        { text: '推动制度，让改变发生', hint: '信任值+15', meterChange: { trust: 15 }, nextScene: 'end6', bridge: '<strong>你不仅发了警告，你还联系了记者。</strong>你把你经历的事，原原本本地讲了一遍。你没想到的是，这条视频，会改变一座城。' }
+        { text: '在群里发出警告', hint: '信任值-20', meterChange: { trust: -20 }, nextScene: 'c8', bridge: '<strong>你打了一段话，又删了。又打了一段，又删了。</strong>最后，你发了一句话："兄弟们，来襄阳古驿镇收麦的，一定要先签合同，先丈量。别问为什么，照做就行。"你不知道这句话会改变什么。但你知道，你必须说。' },
+        { text: '保持沉默', hint: '信任值+5', meterChange: { trust: 5 }, nextScene: 'c8', bridge: '<strong>你把手机收起来了。</strong>你什么都没说。但你不知道的是——你的沉默，被其他农机手感知到了。他们看到你发的朋友圈——只有一张图：阿迪的手，缠着创可贴，上面有泥。而这张图，正被一双看不见的手，推向更大的世界。' },
+        { text: '接受事实，继续干活', hint: '信任值+10', meterChange: { trust: 10 }, nextScene: 'c8', bridge: '<strong>你发动了收割机，继续下一家。</strong>你告诉自己：不是所有人都像大妈那样。你还要挣钱，还要养家，还要给闺女买玩具。你不能因为一个坏人，就放弃所有好人。但你不知道——有人把你和大妈争执的画面拍了下来，正在上传。' },
+        { text: '心寒，离开这个行业', hint: '信任值-30', meterChange: { trust: -30 }, nextScene: 'c8', bridge: '<strong>你看着三十万的收割机，做了一个决定。</strong>你卖掉了它。你带着阿迪和闺女，去了深圳。你进了一家电子厂，每天十二个小时，流水线。你不再看麦田，不再闻麦香，不再想襄阳。但你不知道——你走之后，你的故事才开始。' },
+        { text: '推动制度，让改变发生', hint: '信任值+15', meterChange: { trust: 15 }, nextScene: 'c8', bridge: '<strong>你不仅发了警告，你还联系了记者。</strong>你把你经历的事，原原本本地讲了一遍。你没想到的是，这条视频，会改变一座城——更会改变你的人生。' }
+      ] },
+    // ── Chapter 8: Network Fermentation ──
+    'c8': { sceneNum: '第八幕', title: '网络风暴',
+      text: '<p>三天后，你的手机开始疯狂震动。</p><p>你打开手机，看到了一个你从未见过的世界。你的故事被路人拍下来发到了网上，标题<strong>《河南农机手襄阳割麦被讹：割四亩倒赔五百》</strong>已经冲上热搜第一。阅读量——<strong>破百亿</strong>。</p><p>你打开评论区——<strong>28万条评论</strong>在等着你：</p><p>"襄阳人怎么这样？以后谁还敢去帮忙？"</p><p>"那个大妈太恶心了！必须人肉她！"</p><p>"农机手是来帮你们的，你们就这样对待恩人？"</p><p>"我是襄阳人，我替她道歉，我们不是这样的。"</p><p>"建议全国农机手拉黑襄阳！"</p><p>你的手机不停地响。记者、自媒体、农机手同行、甚至还有陌生人——有人要给你捐款，有人要帮你打官司，有人要请你去做节目。你从来没有被这么多人关注过。阿迪在旁边看着，她的眼睛红了——不是因为委屈，是因为被看见。</p><p>但同时，你也看到了黑暗的一面——有人开始人肉大妈，有人要给大妈寄花圈，有人扬言要去古驿镇"替天行道"。你看着那些威胁的评论，心里涌起一股复杂的情绪。你要的是公道，不是暴力。</p>',
+      image: 'assets/social_media.jpg', imageCaption: '图：割四赔五事件登上热搜，全网阅读量突破百亿，评论区炸开了锅',
+      choices: [
+        { text: '接受采访，把真相说出来', hint: '信任值-10', meterChange: { trust: -10 }, nextScene: 'end2', bridge: '<strong>你接受了央视记者的采访。</strong>你坐在镜头前，有些紧张。但你看着阿迪的眼睛，你开始说——从五百公里的雨夜出发，到泥泞中的三个小时，到阿迪手上的血，到村支书的两百块。你说的时候很平静，但听的人，眼泪都下来了。' },
+        { text: '呼吁停止网暴，要的是公道不是暴力', hint: '信任值+10', meterChange: { trust: 10 }, nextScene: 'end7', bridge: '<strong>你发了一条长文。</strong>你说："我感谢大家的关注，但请不要网暴大妈。我们要的是制度保障，不是以暴制暴。"你的长文被转发了五十万次——有人骂你圣母，有人夸你格局。你不在乎。你只在乎一件事：正义，不能以暴力的方式实现。' },
+        { text: '保持低调，让事情自然发展', hint: '信任值+5', meterChange: { trust: 5 }, nextScene: 'end1', bridge: '<strong>你关掉了手机。</strong>你把阿迪搂在怀里，看着窗外的麦田。你不需要成为英雄，你只需要一个公道。至于公道怎么来——你相信，时间会给出答案。' },
+        { text: '利用热度，推动制度变革', hint: '信任值+15', meterChange: { trust: 15 }, nextScene: 'end6', bridge: '<strong>你联系了全国人大代表。</strong>你把你经历的事写成了一份详细的报告。你参与了座谈会，你坐在台上，台下是各路专家和官员。你说："我不是要赔偿，我是要一个制度——让每一个农机手，不管走到哪里，都能被公平对待。"' },
+        { text: '接受镇书记的道歉，选择和解', hint: '信任值+20', meterChange: { trust: 20 }, nextScene: 'end4', bridge: '<strong>镇书记驱车五百公里，到了商丘，找到了你。</strong>他当着你的面，道歉。他说："是我们\'襄阳\'对不起你。"你看着他——他头发白了，眼睛红了。你突然觉得，他不是坏人。他只是替别人来道歉的人。' }
       ] },
     // ── Endings ──
     'end1': { isEnding: true, endingIcon: '🌾', title: '沉默的离开',
@@ -583,6 +721,7 @@ function buildVillagerScenes() {
       ] },
     'z4': { sceneNum: '第四幕', title: '拦在车前',
       text: '<p>你拦在收割机前，不给钱不让走。你的声音越来越大，你说的话越来越离谱——"三亩多"变成了"四亩"，"四亩"又变成了"五亩二"。你听到自己在说："你们不仅不能收工钱，还要赔我五百块！"</p><p>你看到那个年轻媳妇哭了。她的眼泪和雨水混在一起，分不清。她的手上还有泥，还有血。你心里咯噔了一下——但你已经停不下来了。你告诉自己：我不是在欺负人，我是在保护自己。</p><p>围观的人越来越多。有人摇头，有人叹气，有人掏出了手机。你看到那个亮着的摄像头——但你不在乎。你告诉自己：你没错。你只是在讨回属于你的东西。</p>',
+      image: 'assets/blocked_scene.jpg', imageCaption: '图：张大妈张开双臂拦在收割机前，不顾众人劝阻，坚持不给钱不让走',
       choices: [
         { text: '继续坚持，不给钱不让走', hint: '贪念值+10', meterChange: { greed: 10 }, nextScene: 'z5', bridge: '<strong>你站在收割机前，像一棵长在泥里的老树。</strong>你听到警察来了，村干部来了。你听到村支书说："我垫两百，他们补三百，这事就算了。"你伸出手，接过了钱。' }
       ] },
@@ -592,11 +731,20 @@ function buildVillagerScenes() {
         { text: '把钱收起来，告诉自己没错', hint: '贪念值+5', meterChange: { greed: 5 }, nextScene: 'z6', bridge: '<strong>你把钱塞进了枕头底下。</strong>你告诉自己：你没错。你只是在保护自己。你翻了个身，闭上了眼睛。但你睡不着——你总觉得，有人在看你。' }
       ] },
     'z6': { sceneNum: '第六幕', title: '风暴来临',
-      text: '<p>视频上了网。你不上网，但你的邻居上网。他们告诉你：你出名了。全网都在骂你。</p><p>村干部来约谈。他们坐在你家的堂屋里，表情严肃。他们说："你的事，影响很坏。"你慌了。你活了六十年，从来没见过这么大的阵仗。你儿子从外地打电话回来，声音颤抖："妈，你别再丢人了。"</p><p>你摔了电话，然后哭了。你坐在堂屋里，看着墙上的老照片——你老伴，你儿子，你年轻时候的自己。你突然想起：你年轻的时候，也被人欺负过。那时候你发誓，你这辈子，绝不欺负别人。你忘了这个誓言。</p>',
+      text: '<p>视频上了网。你不上网，但你的邻居上网。两天后，村头的王婶跑到你家门口，举着手机给你看——你的脸，你的声音，你拦在收割机前的样子，全都在上面。</p><p>标题写着：<strong>《襄阳大妈讹诈河南农机手：割四亩倒赔五百，拦车不让走》</strong>。你看到下面的数字——<strong>播放量：8.3亿</strong>。你活了六十年，不知道"亿"是多大。但你看到评论区的那些话，你懂了——</p><p>"这个老东西，太不要脸了！"</p><p>"襄阳人的脸都被她丢尽了！"</p><p>"查查她家地址，我给她寄点东西。"</p><p>"建议全网封杀，让她知道什么叫报应！"</p><p>你的手开始发抖。你去找村干部，村干部正在开会——讨论怎么处理你的事。你看到村支书的脸，阴沉得像要下雨。他说："你的事，影响很坏。全镇、全县、全市，都被你连累了。"</p><p>你儿子从外地打电话回来，声音颤抖："妈，你知不知道网上都在骂你？你知不知道我同事都在看这个视频？你让我以后怎么见人？"你摔了电话，然后哭了。你坐在堂屋里，看着墙上的老照片——你老伴，你儿子，你年轻时候的自己。你突然想起：你年轻的时候，也被人欺负过。那时候你发誓，你这辈子，绝不欺负别人。你忘了这个誓言。</p>',
+      image: 'assets/social_media.jpg', imageCaption: '图：大妈讹诈农机手的视频在网上疯传，播放量突破8亿，评论区骂声一片',
       choices: [
-        { text: '道歉退款', hint: '贪念值-20', meterChange: { greed: -20 }, nextScene: 'end_v2', bridge: '<strong>你站起来，走到村干部面前。</strong>你说："我退钱。"你说这三个字的时候，用了你六十年来最大的力气。你才知道，认错，比欺人，需要更大的勇气。' },
-        { text: '死不认错', hint: '贪念值+15', meterChange: { greed: 15 }, nextScene: 'end_v3', bridge: '<strong>你咬着牙，说："我没错。"</strong>你看着村干部摇头，看着他们离开。你一个人坐在堂屋里，觉得这个屋子，比任何时候都空。' },
-        { text: '逃离，搬去镇上', hint: '贪念值+5', meterChange: { greed: 5 }, nextScene: 'end_v5', bridge: '<strong>你收拾了东西，锁了门。</strong>你回头看了一眼你住了六十年的老屋——然后转身，头也不回地走了。你不知道要去哪里，但你知道，你不能留在这里了。' }
+        { text: '道歉退款，承认错误', hint: '贪念值-20', meterChange: { greed: -20 }, nextScene: 'z7', bridge: '<strong>你站起来，走到村干部面前。</strong>你说："我退钱。"你说这三个字的时候，用了你六十年来最大的力气。你才知道，认错，比欺人，需要更大的勇气。但道歉之后，事情并没有结束——网络上的风暴，才刚刚开始。' },
+        { text: '死不认错，坚持自己没错', hint: '贪念值+15', meterChange: { greed: 15 }, nextScene: 'z7', bridge: '<strong>你咬着牙，说："我没错！我种了一辈子地，他们撒了我的麦子，我凭什么不能要赔偿？"</strong>你看着村干部摇头，看着他们离开。你一个人坐在堂屋里，觉得这个屋子，比任何时候都空。但你不知道——你说"我没错"这句话，被旁边的人录了下来，又发到了网上。' },
+        { text: '逃离，搬去镇上躲起来', hint: '贪念值+5', meterChange: { greed: 5 }, nextScene: 'z7', bridge: '<strong>你收拾了东西，锁了门。</strong>你回头看了一眼你住了六十年的老屋——然后转身，头也不回地走了。但你以为躲到镇上就没人认识你了？你错了——第二天，你在菜市场被人认了出来。有人举起手机，对准了你。' }
+      ] },
+    // ── Chapter 7: Network Backlash ──
+    'z7': { sceneNum: '第七幕', title: '网络反噬',
+      text: '<p>事情没有结束。不但没有结束，反而越来越糟。</p><p>你的视频被做成了各种版本——有人给你加了鬼畜特效，有人把你的话编成了顺口溜，有人把你的脸P成了表情包。你走在村里，小孩子在背后喊你"赔钱奶奶"。你去赶集，卖菜的不卖给你。你去邮局取钱，柜员看到你的身份证，眼神都变了。</p><p>最让你受不了的是你儿子。他从外地赶回来，一进门就跪在你面前："妈，我求你了，你去认个错吧。我女朋友的爸妈看到了这个视频，要退婚。我班上的同事都在笑话我。你再不认错，我这辈子就毁了。"</p><p>你看着儿子跪在地上，眼泪流了一脸。你心里有什么东西碎了——不是被人骂碎的，是被儿子的眼泪砸碎的。你活了六十年，头一次觉得：五百块钱，不值得。但你的嘴还是硬的——你心里认了错，嘴上却说不出口。你从来不会说"对不起"这三个字。你的蛮横，你的倔强，你的不讲理——在这一刻，全都变成了刺向自己儿子的刀。</p>',
+      choices: [
+        { text: '终于开口认错，向小夫妻道歉', hint: '贪念值-30', meterChange: { greed: -30 }, nextScene: 'end_v2', bridge: '<strong>你张了张嘴，用了你六十年来最大的力气，说出了那三个字。</strong>你说："对不起。"你站在那对年轻夫妻面前，低着头，像个做错事的孩子。那个年轻媳妇——你让她哭过的那个——她拍了拍你的手，说："没事了。"你哭了。不是因为委屈，是因为释然。' },
+        { text: '嘴上不认，但偷偷把钱捐了', hint: '贪念值-10', meterChange: { greed: -10 }, nextScene: 'end_v6', bridge: '<strong>你没有道歉。</strong>但你做了另一件事——你趁着天黑，把五百块钱装进信封，塞进了村委会的捐款箱。你对自己说：我不是在认错，我是在积德。但你心里知道——你终于做了一件对的事。' },
+        { text: '死不悔改，继续嘴硬', hint: '贪念值+20', meterChange: { greed: 20 }, nextScene: 'end_v3', bridge: '<strong>你咬着牙，看着儿子跪在地上。</strong>你心里在滴血，但你的嘴比石头还硬。你说："我没做错！我就是没做错！"你儿子站起来，擦了擦眼泪，转身走了。他走的时候，没回头。你看着他的背影，突然觉得——你失去了儿子。' }
       ] },
     // ── Endings ──
     'end_v1': { isEnding: true, endingIcon: '😔', title: '无地自容',
@@ -643,6 +791,7 @@ function buildOfficialScenes() {
       ] },
     'g2': { sceneNum: '第二幕', title: '现场调解',
       text: '<p>你判定麦粒撒落是正常损耗。但大妈不依不饶。她拦在收割机前，不给钱不让走。你的话她听不进去——她只认一个理：她的麦子撒了，就要赔。</p><p>你看着那对年轻夫妻。小伙子攥着拳头，他媳妇在哭。你心里清楚——他们是来帮你们的，你们却让他们受委屈。你看着他们，想起你儿子——你儿子也在外地打工，他是不是也被人这样欺负过？</p><p>你做了一个决定。</p>',
+      image: 'assets/village_leader.jpg', imageCaption: '图：村支书在现场调解纠纷，面对大妈的无理取闹和小夫妻的委屈，陷入两难',
       choices: [
         { text: '自掏腰包，垫付两百', hint: '威信值+10', meterChange: { authority: 10 }, nextScene: 'g3', bridge: '<strong>你从口袋里掏出两百块钱。</strong>你说："我垫两百，你们再补三百，这事就算了。"你看到大妈的眼睛亮了，你看到小伙子的表情——不是愤怒，是无奈。' }
       ] },
@@ -653,10 +802,18 @@ function buildOfficialScenes() {
         { text: '先压下来，看后续发展', hint: '威信值-10', meterChange: { authority: -10 }, nextScene: 'g4', bridge: '<strong>你犹豫了一下，决定先不汇报。</strong>你告诉自己：也许只是个别事件，也许大妈只是一时糊涂。你把电话放下了——但你不知道，这个决定，会带来什么后果。' }
       ] },
     'g4': { sceneNum: '第四幕', title: '舆论风暴',
-      text: '<p>视频上了热搜。全网都在骂襄阳。你看到评论里说"拉黑襄阳""襄阳人太坏了""再也不敢去襄阳了"。你知道，出大事了。</p><p>你接到镇书记的电话——他的声音很沉重。他说："这件事，必须处理好。这不仅是一个纠纷，这是襄阳的信用。"</p><p>你坐在办公室里，看着窗外。麦田已经收完了，但你的心，比麦田还空。你发出去的求援信息，换来的不是感谢，是骂声。你心里委屈——但你知道，委屈不能解决问题。</p>',
+      text: '<p>你担心的事，终究还是发生了。视频上了热搜，标题刺眼——<strong>《襄阳农机手被讹：割四亩倒赔五百》</strong>。你坐在办公室里，一条一条地看着评论，手心全是汗。</p><p>"襄阳人太坏了！全国农机手拉黑襄阳！"</p><p>"当地干部呢？都在吃干饭？"</p><p>"这种地方不值得去，让他们自己烂在地里！"</p><p>你接到镇书记的电话——他的声音很沉重，带着你没听过的焦虑。他说："市里、省里都在问这个事。央视记者明天就到。这件事，必须处理好。这不仅是一个纠纷，这是襄阳的信用。"</p><p>你放下电话，看着窗外。麦田已经收完了，但你的心，比麦田还空。你发出去的求援信息，换来的不是感谢，是骂声。你心里委屈——你垫了两百块，你尽力了。但你也知道——委屈不能解决问题。现在的问题是：网络上的火已经烧起来了，你是去灭火，还是被火烧？</p>',
+      image: 'assets/social_media.jpg', imageCaption: '图：割四赔五事件登上热搜，全国舆论哗然，襄阳面临前所未有的信用危机',
       choices: [
-        { text: '主动道歉，安排镇书记去河南', hint: '威信值+15', meterChange: { authority: 15 }, nextScene: 'g5', bridge: '<strong>你给镇书记打了电话。</strong>你说："书记，我们去河南吧。当面道歉，比什么都管用。"镇书记沉默了一会儿，说："好。明天就出发。"' },
-        { text: '等上级指示，不要轻举妄动', hint: '威信值-15', meterChange: { authority: -15 }, nextScene: 'end_g3', bridge: '<strong>你选择了等待。</strong>但时间不等人。舆论在发酵，农机手在撤离，麦子在烂掉。你等来的不是指示，是更大的损失。' }
+        { text: '主动出击，安排镇书记去河南道歉', hint: '威信值+15', meterChange: { authority: 15 }, nextScene: 'g4b', bridge: '<strong>你给镇书记打了电话。</strong>你说："书记，我们去河南吧。当面道歉，比什么都管用。危机公关的第一条原则——不要等，不要躲，主动去面对。"镇书记沉默了一会儿，说："好。明天就出发。"' },
+        { text: '等上级指示，先不要轻举妄动', hint: '威信值-15', meterChange: { authority: -15 }, nextScene: 'g4b', bridge: '<strong>你选择了等待。</strong>但时间不等人。舆论在发酵，农机手在撤离，麦子在烂掉。你等来的不是指示，是一个又一个的坏消息——又有三个农机手取消了来襄阳的计划。你开始后悔：为什么不早点行动？' }
+      ] },
+    // ── Chapter 4b: Crisis PR ──
+    'g4b': { sceneNum: '第四幕·续', title: '危机公关',
+      text: '<p>舆论继续发酵。第二天，央视记者到了。你站在镇政府门口，看着采访车开进来，手心全是汗。你当了二十年村干部，从来没面对过这么大的阵仗。</p><p>记者的问题很尖锐："作为当地干部，你们为什么没有提前建立农机手保障机制？""大妈的行为是否反映了当地民风问题？""你们打算怎么挽回襄阳的信用？"你站在镜头前，嗓子发干。你想说"我们垫了钱"，但你觉得说出来像是在推卸责任。你想说"大妈是个别现象"，但你怕被人说成袒护。</p><p>镇书记把你拉到一边，低声说："我们犯了错，就要认。认错不丢人，丢人的是不认错。你去准备一下——明天，我们开车去河南。当面道歉。"</p><p>你看着镇书记——他头发白了一半，眼睛红红的，已经两宿没睡了。你突然觉得——你的委屈，不算什么。真正扛着压力的，是这个人。</p>',
+      choices: [
+        { text: '全力配合，准备去河南道歉', hint: '威信值+10', meterChange: { authority: 10 }, nextScene: 'g5', bridge: '<strong>你连夜准备了一份方案。</strong>你把你想到的、学到的、反思到的，都写进去了。你决定：不能让第二个李佳宇，在襄阳受委屈。你看着窗外，天快亮了。明天，你就要去河南——去面对那个被你们辜负了的人。' },
+        { text: '犹豫不决，觉得太丢脸了', hint: '威信值-15', meterChange: { authority: -15 }, nextScene: 'end_g3', bridge: '<strong>你犹豫了。</strong>你想到要去河南，要当着外省人的面低头认错，你的自尊心在抗拒。你告诉自己：再等等，也许舆论会自己平息。但你没有等到平息——你等到的是：更多的农机手取消了订单，更多的麦子烂在了地里。' }
       ] },
     'g5': { sceneNum: '第五幕', title: '驱车五百公里',
       text: '<p>镇书记亲自驱车，从襄阳到商丘，五百公里。你坐在副驾驶，看着窗外。河南的麦子已经收完了——金黄的麦茬，整整齐齐地排列在田里。</p><p>你们找到了李佳宇。他正在家门口——他闺女在院子里爬，他媳妇在晾衣服。他看到你们，愣住了。</p><p>镇书记走上前，说："是我们\'襄阳\'对不起你。"他补上了四百块钱。李佳宇的父亲在旁边说了一句话："不能因为一个人，就否定一座城。"</p><p>你站在旁边，看着这一切。你心里想：我们不仅需要收割机，我们更需要信任。信任，是比麦子更重要的东西。</p>',
@@ -703,17 +860,27 @@ function buildBystanderScenes() {
         { text: '只发给朋友，私下扩散', hint: '正义值+5', meterChange: { justice: 5 }, nextScene: 'b2', bridge: '<strong>你把视频发给了几个朋友。</strong>你说："你看这个，太气人了。"但你没想到的是，你的朋友又把视频发给了他的朋友——然后，一传十，十传百。' }
       ] },
     'b2': { sceneNum: '第二幕', title: '视频的价值',
-      text: '<p>视频发布后，一小时内十万播放，一天内破亿。你成了"爆料人"。</p><p>你的手机不停地响——记者、自媒体、网友。有人夸你正义，有人骂你蹭热度，有人威胁你删视频。你看着那些评论，心里五味杂陈。你只是想记录一个真相——但你没想到，真相的力量，如此巨大。</p><p>你看着视频下面那些评论，有人骂大妈，有人骂襄阳，有人骂你。你开始怀疑：你做的事情，是对的吗？</p>',
+      text: '<p>视频发布后，一小时内十万播放，一天内破亿。你成了"爆料人"。</p><p>你的手机不停地响——记者、自媒体、网友。有人夸你正义，有人骂你蹭热度，有人威胁你删视频。你看着那些评论，心里五味杂陈。你只是想记录一个真相——但你没想到，真相的力量，如此巨大。</p><p>你看到视频下面出现了<strong>#割四赔五#</strong>的话题标签。你看到有人发起了"全国农机手拉黑襄阳"的倡议。你看到越来越多的人开始关注这件事——不是因为你，是因为真相本身的力量。但你也在深夜刷到了一些你不想看到的评论——有人人肉了大妈，有人在她家门口拍照，有人扬言要"替天行道"。你开始怀疑：你做的事情，是对的吗？</p>',
+      image: 'assets/social_media.jpg', imageCaption: '图：视频发布后迅速登上热搜，#割四赔五#话题阅读量突破百亿，引发全网讨论',
       choices: [
         { text: '接受采访，说出真相', hint: '正义值+10', meterChange: { justice: 10 }, nextScene: 'b3', bridge: '<strong>你接受了记者的采访。</strong>你把你看到的，原原本本地讲了一遍。你说："我不是为了出名，我只是想让更多人知道——有人在受委屈。"' },
         { text: '保持匿名，让视频说话', hint: '正义值+5', meterChange: { justice: 5 }, nextScene: 'b3', bridge: '<strong>你选择了匿名。</strong>你不想被关注，你只想让视频自己说话。但你不知道的是——匿名，有时候比实名更有力量。因为当人们不知道你是谁的时候，他们只能关注你说的内容。' }
       ] },
     'b3': { sceneNum: '第三幕', title: '引爆网络',
-      text: '<p>你的视频推动了事件解决。镇书记驱车去河南道歉，襄阳出台了保障措施，大妈被约谈退款。你看着这些新闻，心里涌起一股复杂的感觉——你做了正确的事，但不知道为什么，你并不觉得开心。</p><p>有人骂你"蹭热度""博眼球"。你看着那些评论，心里有点委屈——你只是做了你该做的事。但你也开始反思：你是在追求正义，还是在不经意间成了流量的推手？</p>',
+      text: '<p>你的视频推动了事件解决。镇书记驱车去河南道歉，襄阳出台了保障措施，大妈被约谈退款。你看着这些新闻，心里涌起一股复杂的感觉——你做了正确的事，但不知道为什么，你并不觉得开心。</p><p>有人骂你"蹭热度""博眼球"。你看着那些评论，心里有点委屈——你只是做了你该做的事。但你也开始反思：你是在追求正义，还是在不经意间成了流量的推手？</p><p>你的私信里，有人给你发来了大妈被网暴的截图。她的照片被P成了各种表情包，她的家门口被人拍了照，有人扬言要给她"寄惊喜"。你看着那些私信，手开始发抖。你想要的正义，不是这样的。</p>',
       choices: [
-        { text: '继续发声，推动制度变革', hint: '正义值+10', meterChange: { justice: 10 }, nextScene: 'end_b1', bridge: '<strong>你决定继续发声。</strong>你写了一份长文，分析了事件背后的制度问题。你联系了人大代表，你参与了座谈会。你说："我不想只是看着——我想做点什么。"' },
-        { text: '退网，回归平静', hint: '正义值不变', meterChange: { justice: 0 }, nextScene: 'end_b3', bridge: '<strong>你删了视频，退出了网络。</strong>你告诉自己：你已经做了该做的事，剩下的，交给时间。你回到了外婆家，帮她做饭，帮她洗衣服。你发现，平凡的生活，也有它的意义。' },
-        { text: '反思流量与正义', hint: '正义值+5', meterChange: { justice: 5 }, nextScene: 'end_b2', bridge: '<strong>你开始反思。</strong>你翻看那些评论，那些私信，那些转发。你问自己：你是在追求正义，还是在追求流量？这个问题，像一根刺，扎在你心里。' }
+        { text: '继续发声，推动制度变革', hint: '正义值+10', meterChange: { justice: 10 }, nextScene: 'b4', bridge: '<strong>你决定继续发声。</strong>你写了一份长文，分析了事件背后的制度问题。你联系了人大代表，你参与了座谈会。你说："我不想只是看着——我想做点什么。"但你也知道——你越发声，舆论就越热，大妈就越危险。' },
+        { text: '退网，回归平静', hint: '正义值不变', meterChange: { justice: 0 }, nextScene: 'b4', bridge: '<strong>你删了视频，退出了网络。</strong>你告诉自己：你已经做了该做的事，剩下的，交给时间。但你回到外婆家，帮她做饭，帮她洗衣服的时候，你发现——你做不到不去想。你总是忍不住打开手机，看看事情怎么样了。' },
+        { text: '反思流量与正义', hint: '正义值+5', meterChange: { justice: 5 }, nextScene: 'b4', bridge: '<strong>你开始反思。</strong>你翻看那些评论，那些私信，那些转发。你问自己：你是在追求正义，还是在追求流量？这个问题，像一根刺，扎在你心里。你决定——在做出下一个决定之前，先搞清楚这个问题。' }
+      ] },
+    // ── Chapter 4: The Double-Edged Sword ──
+    'b4': { sceneNum: '第四幕', title: '舆论的双刃剑',
+      text: '<p>一周后，事件有了结果。镇书记驱车五百公里去河南道歉，襄阳出台了《跨区机收服务保障十条》，大妈被约谈退款。你的视频，改变了一座城。</p><p>但你也看到了你不愿意看到的——大妈被网暴了。她的照片被做成表情包在全网传播，她的家庭住址被人肉出来，有人在她家门口泼油漆，有人给她寄恐吓信。你看到一条评论说："这种人就应该社死。"你心里一震——社死，你以前觉得这个词很酷，现在你觉得它很可怕。</p><p>你开始反思：你举起手机的那一刻，是在追求正义，还是在制造暴力？你发布的视频，是真相，还是武器？你推动了制度变革，但也毁了一个老人的晚年。你做的，到底是对是错？</p><p>这个问题，没有标准答案。但你必须面对它。</p>',
+      choices: [
+        { text: '继续发声，但呼吁停止网暴', hint: '正义值+10', meterChange: { justice: 10 }, nextScene: 'end_b5', bridge: '<strong>你发了一条长文。</strong>你说："我们要的是正义，不是暴力。请停止对大妈的人身攻击。"你的长文被转发了十万次。有人骂你"圣母"，有人夸你"清醒"。你不在乎——你在乎的是，你终于说出了你一直想说的话。' },
+        { text: '接受结果，功成身退', hint: '正义值+5', meterChange: { justice: 5 }, nextScene: 'end_b6', bridge: '<strong>你决定功成身退。</strong>你见证了改变——襄阳变了，制度变了，人心变了。你不需要再做什么了。你只需要记住：你曾经举起过手机，你曾经为正义做过一件事。这就够了。' },
+        { text: '深刻反思，从旁观到参与', hint: '正义值+15', meterChange: { justice: 15 }, nextScene: 'end_b4', bridge: '<strong>你做了一个决定。</strong>你不能只是旁观。你要参与。你开始准备考公务员——你要去基层，去那些需要改变的地方。你要让每一个农机手，不管走到哪里，都能被公平对待。' },
+        { text: '退网，删除一切痕迹', hint: '正义值-10', meterChange: { justice: -10 }, nextScene: 'end_b3', bridge: '<strong>你删了所有视频，注销了账号。</strong>你不想再看到网暴，不想再看到流量，不想再看到正义被扭曲。你回到了外婆家，帮她做饭，帮她洗衣服。你发现，平凡的生活，也有它的意义——但你知道，你永远不会忘记这件事。' }
       ] },
     // ── Endings ──
     'end_b1': { isEnding: true, endingIcon: '📢', title: '吹哨人',
